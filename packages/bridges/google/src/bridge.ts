@@ -1,5 +1,5 @@
 import type { MintInstruction, RevokeInstruction, StoreNotification } from '@doubloon/core';
-import { nullLogger } from '@doubloon/core';
+import { DoubloonError, nullLogger } from '@doubloon/core';
 import { mapGoogleNotificationType, computeGoogleDeduplicationKey } from './notification-map.js';
 import type { BridgeResult, GoogleBridgeConfig } from './types.js';
 
@@ -67,7 +67,7 @@ export class GoogleBridge {
 
     const sub = rtdn.subscriptionNotification;
     if (!sub) {
-      throw new Error('RTDN contains neither subscription nor test notification');
+      throw new DoubloonError('INVALID_RECEIPT', 'RTDN contains neither subscription nor test notification');
     }
 
     const notificationType = mapGoogleNotificationType(sub.notificationType);
@@ -83,7 +83,7 @@ export class GoogleBridge {
       sub.subscriptionId,
     );
     if (!productId) {
-      throw new Error(`Unknown Google subscription ID: ${sub.subscriptionId}`);
+      throw new DoubloonError('PRODUCT_NOT_MAPPED', `Unknown Google subscription ID: ${sub.subscriptionId}`);
     }
 
     // Resolve wallet from purchase token (store user identifier)
@@ -92,7 +92,7 @@ export class GoogleBridge {
       sub.purchaseToken,
     );
     if (!userWallet) {
-      throw new Error(`No wallet linked for Google purchase token: ${sub.purchaseToken}`);
+      throw new DoubloonError('WALLET_NOT_LINKED', `No wallet linked for Google purchase token: ${sub.purchaseToken}`);
     }
 
     const storeTimestamp = new Date(Number(rtdn.eventTimeMillis));

@@ -1,4 +1,6 @@
 import { randomBytes } from 'node:crypto';
+import nacl from 'tweetnacl';
+import { PublicKey } from '@solana/web3.js';
 import { DoubloonError } from '@doubloon/core';
 
 export interface SIWSConfig {
@@ -47,21 +49,6 @@ export function verifySIWS(
   const expiresAt = new Date(expiresAtStr);
   if (expiresAt < new Date()) {
     throw new DoubloonError('SIGNATURE_INVALID', 'Message has expired');
-  }
-
-  // Dynamically import tweetnacl to keep it as peer dep
-  let nacl: typeof import('tweetnacl');
-  try {
-    nacl = require('tweetnacl');
-  } catch {
-    throw new DoubloonError('MISSING_CREDENTIALS', 'tweetnacl is required for SIWS verification');
-  }
-
-  let PublicKey: typeof import('@solana/web3.js').PublicKey;
-  try {
-    PublicKey = require('@solana/web3.js').PublicKey;
-  } catch {
-    throw new DoubloonError('MISSING_CREDENTIALS', '@solana/web3.js is required for SIWS verification');
   }
 
   const publicKey = new PublicKey(wallet);

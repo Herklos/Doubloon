@@ -1,5 +1,5 @@
 import type { MintInstruction, RevokeInstruction, StoreNotification } from '@doubloon/core';
-import { nullLogger } from '@doubloon/core';
+import { DoubloonError, nullLogger } from '@doubloon/core';
 import { mapStripeEventType, computeStripeDeduplicationKey } from './notification-map.js';
 import type { BridgeResult, StripeBridgeConfig } from './types.js';
 
@@ -75,7 +75,8 @@ export class StripeBridge {
     }
 
     if (!userWallet) {
-      throw new Error(
+      throw new DoubloonError(
+        'WALLET_NOT_LINKED',
         `No wallet found for Stripe event ${event.id}. ` +
         `Set metadata.wallet on the subscription/customer or link via WalletResolver.`,
       );

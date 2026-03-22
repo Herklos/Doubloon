@@ -1,5 +1,5 @@
 import type { MintInstruction, StoreNotification } from '@doubloon/core';
-import { nullLogger } from '@doubloon/core';
+import { DoubloonError, nullLogger } from '@doubloon/core';
 import { mapX402PaymentType, computeX402DeduplicationKey } from './notification-map.js';
 import type { X402BridgeResult, X402BridgeConfig } from './types.js';
 
@@ -51,7 +51,7 @@ export class X402Bridge {
       receipt.productId,
     );
     if (!onChainProductId) {
-      throw new Error(`Unknown x402 product ID: ${receipt.productId}`);
+      throw new DoubloonError('PRODUCT_NOT_MAPPED', `Unknown x402 product ID: ${receipt.productId}`);
     }
 
     const deduplicationKey = computeX402DeduplicationKey(

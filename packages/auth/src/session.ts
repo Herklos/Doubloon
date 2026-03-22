@@ -1,3 +1,4 @@
+import nacl from 'tweetnacl';
 import { DoubloonError } from '@doubloon/core';
 
 export function createSessionToken(
@@ -5,13 +6,6 @@ export function createSessionToken(
   serverPrivateKey: Uint8Array,
   ttlMinutes: number,
 ): string {
-  let nacl: typeof import('tweetnacl');
-  try {
-    nacl = require('tweetnacl');
-  } catch {
-    throw new DoubloonError('MISSING_CREDENTIALS', 'tweetnacl is required');
-  }
-
   const payload = JSON.stringify({
     w: wallet,
     e: Date.now() + ttlMinutes * 60_000,
@@ -26,13 +20,6 @@ export function verifySessionToken(
   token: string,
   serverPublicKey: Uint8Array,
 ): { wallet: string; expiresAt: Date } {
-  let nacl: typeof import('tweetnacl');
-  try {
-    nacl = require('tweetnacl');
-  } catch {
-    throw new DoubloonError('MISSING_CREDENTIALS', 'tweetnacl is required');
-  }
-
   const parts = token.split('.');
   if (parts.length !== 2) {
     throw new DoubloonError('SIGNATURE_INVALID', 'Malformed session token');
