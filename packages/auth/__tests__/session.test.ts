@@ -13,12 +13,12 @@ describe('Session tokens', () => {
     expect(result.expiresAt.getTime()).toBeGreaterThan(Date.now());
   });
 
-  it('expired token fails', () => {
+  it('expired token fails verification', async () => {
+    // Create a token that expires immediately (0 minutes TTL)
     const token = createSessionToken('wallet123', keypair.secretKey, 0);
-    // Token with 0 minute TTL - expiresAt is approximately now
-    // We need to wait or use a trick. Instead, let's just verify the format
-    const parts = token.split('.');
-    expect(parts).toHaveLength(2);
+    // Wait a tiny bit to ensure expiry
+    await new Promise(r => setTimeout(r, 10));
+    expect(() => verifySessionToken(token, keypair.publicKey)).toThrow('expired');
   });
 
   it('wrong key fails', () => {

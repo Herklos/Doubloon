@@ -28,6 +28,7 @@ function entitlementSourceToU8(source: EntitlementSource): number {
   return map[source];
 }
 
+// TODO: Integrate Anchor Program.methods for building instructions; transactions currently have no instructions attached
 export class DoubloonSolanaWriter {
   readonly connection: Connection;
   private programId: PublicKey;

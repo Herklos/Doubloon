@@ -16,6 +16,7 @@ function entitlementSourceToU8(source: EntitlementSource): number {
   return map[source];
 }
 
+// TODO: Connect to viem WalletClient for live RPC calls
 export class DoubloonEvmWriter {
   private contractAddress: string;
   private logger: Logger;
@@ -25,28 +26,40 @@ export class DoubloonEvmWriter {
     this.logger = config.logger ?? nullLogger;
   }
 
+  /**
+   * Registers a new product on-chain.
+   * Placeholder – returns an empty hash until viem integration is complete.
+   */
   async registerProduct(params: {
     productId: string;
     name: string;
     metadataUri: string;
     defaultDuration: number;
   }): Promise<{ hash: string }> {
-    this.logger.info('Building registerProduct tx', { productId: params.productId });
+    this.logger.info('Building registerProduct tx (placeholder – no wallet client configured)', { productId: params.productId });
     return { hash: '' };
   }
 
+  /**
+   * Mints an entitlement for a user.
+   * Placeholder – returns an empty hash until viem integration is complete.
+   */
   async mintEntitlement(params: MintInstruction & {
     autoRenew?: boolean;
   }): Promise<{ hash: string }> {
-    this.logger.info('Building mintEntitlement tx', {
+    this.logger.info('Building mintEntitlement tx (placeholder – no wallet client configured)', {
       productId: params.productId,
       user: params.user,
     });
     return { hash: '' };
   }
 
+  /**
+   * Revokes an existing entitlement.
+   * Placeholder – returns an empty hash until viem integration is complete.
+   */
   async revokeEntitlement(params: RevokeInstruction): Promise<{ hash: string }> {
-    this.logger.info('Building revokeEntitlement tx', {
+    this.logger.info('Building revokeEntitlement tx (placeholder – no wallet client configured)', {
       productId: params.productId,
       user: params.user,
     });

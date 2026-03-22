@@ -17,6 +17,7 @@ export interface DoubloonEvmReaderConfig {
   logger?: Logger;
 }
 
+// TODO: Connect to viem PublicClient for live RPC calls
 export class DoubloonEvmReader {
   private contractAddress: string;
   private rpcUrl: string;
@@ -28,15 +29,21 @@ export class DoubloonEvmReader {
     this.logger = config.logger ?? nullLogger;
   }
 
+  /**
+   * Checks whether a user holds an active entitlement for the given product.
+   * Requires a live RPC connection; returns false until viem integration is complete.
+   */
   async isEntitled(productId: string, userAddress: string): Promise<boolean> {
-    // In production, uses viem's readContract
-    // For now, placeholder that would be connected to an actual RPC
-    this.logger.debug('isEntitled check', { productId, userAddress });
+    this.logger.debug('isEntitled check (placeholder – no RPC client configured)', { productId, userAddress });
     return false;
   }
 
+  /**
+   * Fetches the full entitlement record for a user/product pair.
+   * Requires a live RPC connection; returns null until viem integration is complete.
+   */
   async getEntitlement(productId: string, userAddress: string): Promise<Entitlement | null> {
-    this.logger.debug('getEntitlement', { productId, userAddress });
+    this.logger.debug('getEntitlement (placeholder – no RPC client configured)', { productId, userAddress });
     return null;
   }
 
@@ -45,8 +52,12 @@ export class DoubloonEvmReader {
     return checkEntitlement(entitlement);
   }
 
+  /**
+   * Fetches on-chain product metadata.
+   * Requires a live RPC connection; returns null until viem integration is complete.
+   */
   async getProduct(productId: string): Promise<Product | null> {
-    this.logger.debug('getProduct', { productId });
+    this.logger.debug('getProduct (placeholder – no RPC client configured)', { productId });
     return null;
   }
 }

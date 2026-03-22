@@ -85,6 +85,50 @@ export const DoubloonAbi = [
     ],
     name: 'revokeEntitlement', outputs: [], stateMutability: 'nonpayable', type: 'function',
   },
+  {
+    inputs: [
+      { name: 'productId', type: 'bytes32' }, { name: 'name', type: 'string' },
+      { name: 'metadataUri', type: 'string' }, { name: 'defaultDuration', type: 'int64' },
+    ],
+    name: 'updateProduct', outputs: [], stateMutability: 'nonpayable', type: 'function',
+  },
+  {
+    inputs: [{ name: 'productId', type: 'bytes32' }],
+    name: 'deactivateProduct', outputs: [], stateMutability: 'nonpayable', type: 'function',
+  },
+  {
+    inputs: [{ name: 'productId', type: 'bytes32' }],
+    name: 'reactivateProduct', outputs: [], stateMutability: 'nonpayable', type: 'function',
+  },
+  {
+    inputs: [{ name: 'productId', type: 'bytes32' }],
+    name: 'freezeProduct', outputs: [], stateMutability: 'nonpayable', type: 'function',
+  },
+  {
+    inputs: [{ name: 'productId', type: 'bytes32' }],
+    name: 'unfreezeProduct', outputs: [], stateMutability: 'nonpayable', type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'productId', type: 'bytes32' }, { name: 'delegate', type: 'address' },
+      { name: 'expiresAt', type: 'int64' }, { name: 'maxMints', type: 'uint32' },
+    ],
+    name: 'grantDelegation', outputs: [], stateMutability: 'nonpayable', type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'productId', type: 'bytes32' }, { name: 'delegate', type: 'address' },
+    ],
+    name: 'revokeDelegation', outputs: [], stateMutability: 'nonpayable', type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'productId', type: 'bytes32' }, { name: 'user', type: 'address' },
+      { name: 'newExpiresAt', type: 'int64' }, { name: 'source', type: 'uint8' },
+      { name: 'sourceId', type: 'string' },
+    ],
+    name: 'extendEntitlement', outputs: [], stateMutability: 'nonpayable', type: 'function',
+  },
   // Events
   {
     inputs: [
