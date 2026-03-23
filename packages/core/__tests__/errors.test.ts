@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { DoubloonError } from '../src/errors.js';
+import { isMintInstruction } from '../src/types.js';
 
 describe('DoubloonError', () => {
   it('is an instance of Error', () => {
@@ -39,5 +40,17 @@ describe('DoubloonError', () => {
     const json = JSON.parse(JSON.stringify(err));
     expect(json.code).toBe('TRANSACTION_FAILED');
     // message is not enumerable on Error by default, but our custom fields are
+  });
+});
+
+describe('isMintInstruction', () => {
+  it('returns true for MintInstruction', () => {
+    const mint = { productId: 'p', user: 'u', expiresAt: null, source: 'apple' as const, sourceId: 'tx1' };
+    expect(isMintInstruction(mint)).toBe(true);
+  });
+
+  it('returns false for RevokeInstruction', () => {
+    const revoke = { productId: 'p', user: 'u', reason: 'expired' };
+    expect(isMintInstruction(revoke)).toBe(false);
   });
 });

@@ -50,4 +50,19 @@ describe('Session tokens', () => {
       expect(result.wallet).toBe(wallet);
     }
   });
+
+  it('token with too many parts fails', () => {
+    expect(() => verifySessionToken('a.b.c', keypair.publicKey)).toThrow('Malformed session token');
+  });
+
+  it('token with invalid payload fields fails', () => {
+    // Create a signed token with missing 'w' field
+    const payload = JSON.stringify({ e: Date.now() + 60000 });
+    const payloadBytes = new TextEncoder().encode(payload);
+    const sig = nacl.sign.detached(payloadBytes, keypair.secretKey);
+    const b64url = (bytes: Uint8Array) =>
+      Buffer.from(bytes).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const token = `${b64url(payloadBytes)}.${b64url(sig)}`;
+    expect(() => verifySessionToken(token, keypair.publicKey)).toThrow('Malformed session token payload');
+  });
 });

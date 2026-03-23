@@ -269,4 +269,70 @@ describe('createServer', () => {
     expect(beforeMint).toHaveBeenCalled();
     expect(afterMint).not.toHaveBeenCalled();
   });
+
+  it('processes revoke instruction and calls afterRevoke', async () => {
+    const afterRevoke = vi.fn(async () => {});
+    const revokeEntitlement = vi.fn(async () => 'revoke-tx');
+
+    const mockBridge = {
+      handleNotification: vi.fn(async () => ({
+        notification: {
+          id: '5', type: 'revocation' as const, store: 'apple' as const,
+          environment: 'sandbox' as const, productId: 'p', userWallet: 'w',
+          originalTransactionId: 'ot', expiresAt: null, autoRenew: false,
+          storeTimestamp: new Date(), receivedTimestamp: new Date(),
+          deduplicationKey: 'dedup-revoke', raw: {},
+        },
+        instruction: { productId: 'p', user: 'w', reason: 'apple:revocation' },
+      })),
+    };
+
+    const server = createServer(makeMinimalConfig({
+      chain: {
+        reader: {
+          checkEntitlement: vi.fn(async () => ({
+            entitled: false, entitlement: null, reason: 'not_found' as const,
+            expiresAt: null, product: null,
+          })),
+          checkEntitlements: vi.fn(async () => ({ results: {}, user: '', checkedAt: new Date() })),
+        },
+        writer: { mintEntitlement: vi.fn(async () => 'tx'), revokeEntitlement },
+        signer: { signAndSend: vi.fn(async () => 'revoke-sig'), publicKey: 'signer' },
+      },
+      bridges: { apple: mockBridge },
+      afterRevoke,
+    }));
+
+    const result = await server.handleWebhook({ headers: {}, body: 'eyJhbGciOiJ...' });
+    expect(result.status).toBe(200);
+    expect(revokeEntitlement).toHaveBeenCalled();
+    expect(afterRevoke).toHaveBeenCalledWith(
+      expect.objectContaining({ productId: 'p', reason: 'apple:revocation' }),
+      'revoke-sig',
+    );
+  });
+
+  it('returns 400 for bridge DoubloonError with client error code', async () => {
+    const { DoubloonError } = await import('@doubloon/core');
+    const mockBridge = {
+      handleNotification: vi.fn(async () => {
+        throw new DoubloonError('INVALID_RECEIPT', 'Bad notification body');
+      }),
+    };
+
+    const server = createServer(makeMinimalConfig({
+      bridges: { apple: mockBridge },
+    }));
+
+    const result = await server.handleWebhook({ headers: {}, body: 'eyJhbGciOiJ...' });
+    expect(result.status).toBe(400);
+    expect(result.body).toBe('Bad notification body');
+  });
+
+  it('detects Apple from signedPayload body', () => {
+    const server = createServer(makeMinimalConfig());
+    expect(
+      server.detectStore({ headers: {}, body: '{"signedPayload":"abc"}' }),
+    ).toBe('apple');
+  });
 });

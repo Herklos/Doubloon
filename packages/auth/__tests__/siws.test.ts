@@ -51,4 +51,41 @@ describe('SIWS', () => {
     expect(message).toContain('Issued At:');
     expect(message).toContain('Expiration Time:');
   });
+
+  it('expired message fails', () => {
+    const keypair = nacl.sign.keyPair();
+    const walletAddress = new PublicKey(keypair.publicKey).toBase58();
+    const { message, nonce } = createSIWSMessage(
+      { domain: 'test.com', expirationMinutes: -1 },
+      walletAddress,
+    );
+    const messageBytes = new TextEncoder().encode(message);
+    const signature = nacl.sign.detached(messageBytes, keypair.secretKey);
+    expect(() => verifySIWS(message, signature, nonce)).toThrow('Message has expired');
+  });
+
+  it('invalid wallet address fails', () => {
+    const keypair = nacl.sign.keyPair();
+    const badMessage = [
+      'test.com wants you to sign in with your Solana account:',
+      'not-a-valid-base58-key!!!',
+      '',
+      'Sign in to Doubloon',
+      '',
+      'Nonce: abc123',
+      'Expiration Time: 2099-01-01T00:00:00.000Z',
+    ].join('\n');
+    const messageBytes = new TextEncoder().encode(badMessage);
+    const signature = nacl.sign.detached(messageBytes, keypair.secretKey);
+    expect(() => verifySIWS(badMessage, signature, 'abc123')).toThrow('Invalid wallet address');
+  });
+
+  it('malformed message with too few lines fails', () => {
+    expect(() => verifySIWS('single line', new Uint8Array(64), 'nonce')).toThrow('Malformed SIWS message');
+  });
+
+  it('message missing Nonce field fails', () => {
+    const msg = 'test.com wants you to sign in:\nwallet\n\nstatement\n\nExpiration Time: 2099-01-01T00:00:00.000Z';
+    expect(() => verifySIWS(msg, new Uint8Array(64), 'nonce')).toThrow('Missing Nonce');
+  });
 });

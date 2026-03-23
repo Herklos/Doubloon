@@ -70,4 +70,53 @@ describe('createReconciliationRunner', () => {
     expect(report.errors).toHaveLength(1);
     expect(report.errors[0].subscriptionId).toBe('sub1');
   });
+
+  it('revokes when drift detected with RevokeInstruction', async () => {
+    const revokeEntitlement = vi.fn(async () => 'revoke-tx');
+    const signAndSend = vi.fn(async () => 'revoke-sig');
+
+    const runner = createReconciliationRunner({
+      writer: { mintEntitlement: vi.fn(async () => 'tx'), revokeEntitlement },
+      signer: { signAndSend, publicKey: 'signer' },
+    });
+
+    const report = await runner.run([
+      {
+        subscriptionId: 'sub1',
+        bridge: {
+          reconcile: vi.fn(async () => ({
+            drift: true,
+            instruction: { productId: 'p', user: 'w', reason: 'expired' },
+          })),
+        },
+        currentState: null,
+      },
+    ]);
+
+    expect(report.drifted).toBe(1);
+    expect(report.revoked).toBe(1);
+    expect(revokeEntitlement).toHaveBeenCalled();
+    expect(signAndSend).toHaveBeenCalled();
+  });
+
+  it('handles drift with null instruction', async () => {
+    const runner = createReconciliationRunner({
+      writer: { mintEntitlement: vi.fn(async () => 'tx') },
+      signer: { signAndSend: vi.fn(async () => 'sig'), publicKey: 'signer' },
+    });
+
+    const report = await runner.run([
+      {
+        subscriptionId: 'sub1',
+        bridge: {
+          reconcile: vi.fn(async () => ({ drift: true, instruction: null })),
+        },
+        currentState: null,
+      },
+    ]);
+
+    expect(report.drifted).toBe(1);
+    expect(report.minted).toBe(0);
+    expect(report.revoked).toBe(0);
+  });
 });
