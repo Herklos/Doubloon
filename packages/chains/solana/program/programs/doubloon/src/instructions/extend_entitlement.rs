@@ -49,7 +49,7 @@ pub fn handler(
     require!(source_id.len() <= Entitlement::MAX_SOURCE_ID_LEN, DoubloonError::SourceIdTooLong);
 
     let clock = Clock::get()?;
-    check_mint_authorization(
+    let auth_source = check_mint_authorization(
         ctx.accounts.signer.key,
         &ctx.accounts.platform,
         &ctx.accounts.product,
@@ -57,9 +57,12 @@ pub fn handler(
         &clock,
     )?;
 
-    // Increment delegate mints_used to enforce max_mints cap
-    if let Some(delegate) = &mut ctx.accounts.delegate {
-        if delegate.delegate == *ctx.accounts.signer.key {
+    // Use the verified auth source; ignore user-supplied `source` parameter
+    let source = auth_source;
+
+    // Increment delegate mints_used only when authorized via the delegate path
+    if source == crate::state::EntitlementSource::Delegate as u8 {
+        if let Some(delegate) = &mut ctx.accounts.delegate {
             delegate.mints_used = delegate.mints_used.checked_add(1)
                 .ok_or(DoubloonError::DelegateMintLimitReached)?;
         }

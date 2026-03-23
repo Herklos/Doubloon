@@ -1,11 +1,11 @@
 import type { MintInstruction, RevokeInstruction, StoreNotification } from '@doubloon/core';
 import { DoubloonError, nullLogger } from '@doubloon/core';
+import Stripe from 'stripe';
 import { mapStripeEventType, computeStripeDeduplicationKey } from './notification-map.js';
 import type { BridgeResult, StripeBridgeConfig } from './types.js';
 
 /**
  * Minimal Stripe webhook event shape.
- * We keep our own interface to avoid a hard runtime dependency on the Stripe SDK.
  */
 export interface StripeWebhookEvent {
   id: string;
@@ -35,19 +35,32 @@ export class StripeBridge {
 
   /**
    * Handle a Stripe webhook request.
-   * Parses and validates the event from the raw body.
-   * TODO: Implement signature verification using webhookSecret from config.
+   * Verifies the signature using the webhookSecret and then processes the event.
    */
   async handleNotification(
-    _headers: Record<string, string>,
+    headers: Record<string, string>,
     body: Buffer,
   ): Promise<BridgeResult> {
     const bodyStr = typeof body === 'string' ? body : body.toString('utf-8');
+    const signature = headers['stripe-signature'];
+
+    if (!signature) {
+      throw new DoubloonError('INVALID_SIGNATURE', 'Missing stripe-signature header');
+    }
+
     let event: StripeWebhookEvent;
     try {
-      event = JSON.parse(bodyStr);
-    } catch {
-      throw new DoubloonError('INVALID_RECEIPT', 'Invalid Stripe webhook body');
+      const verified = Stripe.webhooks.constructEvent(
+        bodyStr,
+        signature,
+        this.config.webhookSecret,
+      );
+      event = verified as unknown as StripeWebhookEvent;
+    } catch (err) {
+      throw new DoubloonError(
+        'INVALID_SIGNATURE',
+        `Stripe webhook signature verification failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     if (typeof event.type !== 'string' || typeof event.id !== 'string') {

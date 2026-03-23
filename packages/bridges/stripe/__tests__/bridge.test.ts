@@ -1,7 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
+import Stripe from 'stripe';
 import { StripeBridge } from '../src/bridge.js';
 import type { StoreProductResolver } from '@doubloon/storage';
 import type { WalletResolver } from '@doubloon/auth';
+
+const TEST_WEBHOOK_SECRET = 'whsec_test_secret_for_unit_tests';
 
 function makeMockResolver(): StoreProductResolver {
   return {
@@ -20,10 +23,24 @@ function makeMockWalletResolver(): WalletResolver {
   };
 }
 
-const emptyHeaders: Record<string, string> = {};
-
 function toBody(event: unknown): Buffer {
   return Buffer.from(JSON.stringify(event), 'utf-8');
+}
+
+/** Create a signed Stripe request (body + headers with valid signature). */
+function signedRequest(event: unknown): { headers: Record<string, string>; body: Buffer } {
+  const body = toBody(event);
+  const signature = Stripe.webhooks.generateTestHeaderString({
+    payload: body.toString('utf-8'),
+    secret: TEST_WEBHOOK_SECRET,
+  });
+  return { headers: { 'stripe-signature': signature }, body };
+}
+
+/** Helper to call handleNotification with a properly signed event. */
+async function callWithSignedEvent(bridge: StripeBridge, event: unknown) {
+  const { headers, body } = signedRequest(event);
+  return bridge.handleNotification(headers, body);
 }
 
 function makeStripeEvent(overrides: Record<string, unknown> = {}) {
@@ -51,12 +68,12 @@ function makeStripeEvent(overrides: Record<string, unknown> = {}) {
 describe('StripeBridge', () => {
   it('handles initial purchase (subscription.created)', async () => {
     const bridge = new StripeBridge({
-      webhookSecret: 'whsec_test',
+      webhookSecret: TEST_WEBHOOK_SECRET,
       productResolver: makeMockResolver(),
       walletResolver: makeMockWalletResolver(),
     });
 
-    const result = await bridge.handleNotification(emptyHeaders, toBody(makeStripeEvent()));
+    const result = await callWithSignedEvent(bridge, makeStripeEvent());
     expect(result.notification.type).toBe('initial_purchase');
     expect(result.notification.store).toBe('stripe');
     expect(result.notification.environment).toBe('sandbox');
@@ -67,7 +84,7 @@ describe('StripeBridge', () => {
 
   it('handles cancellation (subscription.updated with cancel_at_period_end)', async () => {
     const bridge = new StripeBridge({
-      webhookSecret: 'whsec_test',
+      webhookSecret: TEST_WEBHOOK_SECRET,
       productResolver: makeMockResolver(),
       walletResolver: makeMockWalletResolver(),
     });
@@ -87,14 +104,14 @@ describe('StripeBridge', () => {
       },
     });
 
-    const result = await bridge.handleNotification(emptyHeaders, toBody(event));
+    const result = await callWithSignedEvent(bridge, event);
     expect(result.notification.type).toBe('cancellation');
     expect(result.instruction).toBeNull();
   });
 
   it('handles expiration (subscription.deleted)', async () => {
     const bridge = new StripeBridge({
-      webhookSecret: 'whsec_test',
+      webhookSecret: TEST_WEBHOOK_SECRET,
       productResolver: makeMockResolver(),
       walletResolver: makeMockWalletResolver(),
     });
@@ -111,7 +128,7 @@ describe('StripeBridge', () => {
       },
     });
 
-    const result = await bridge.handleNotification(emptyHeaders, toBody(event));
+    const result = await callWithSignedEvent(bridge, event);
     expect(result.notification.type).toBe('expiration');
     expect(result.instruction).not.toBeNull();
     expect((result.instruction as any).reason).toContain('stripe:expiration');
@@ -119,7 +136,7 @@ describe('StripeBridge', () => {
 
   it('handles refund (charge.refunded)', async () => {
     const bridge = new StripeBridge({
-      webhookSecret: 'whsec_test',
+      webhookSecret: TEST_WEBHOOK_SECRET,
       productResolver: makeMockResolver(),
       walletResolver: makeMockWalletResolver(),
     });
@@ -136,7 +153,7 @@ describe('StripeBridge', () => {
       },
     });
 
-    const result = await bridge.handleNotification(emptyHeaders, toBody(event));
+    const result = await callWithSignedEvent(bridge, event);
     expect(result.notification.type).toBe('refund');
     expect(result.instruction).not.toBeNull();
     expect((result.instruction as any).reason).toContain('stripe:refund');
@@ -144,13 +161,13 @@ describe('StripeBridge', () => {
 
   it('produces livemode environment for livemode events', async () => {
     const bridge = new StripeBridge({
-      webhookSecret: 'whsec_test',
+      webhookSecret: TEST_WEBHOOK_SECRET,
       productResolver: makeMockResolver(),
       walletResolver: makeMockWalletResolver(),
     });
 
     const event = makeStripeEvent({ livemode: true });
-    const result = await bridge.handleNotification(emptyHeaders, toBody(event));
+    const result = await callWithSignedEvent(bridge, event);
     expect(result.notification.environment).toBe('production');
   });
 
@@ -161,7 +178,7 @@ describe('StripeBridge', () => {
     };
 
     const bridge = new StripeBridge({
-      webhookSecret: 'whsec_test',
+      webhookSecret: TEST_WEBHOOK_SECRET,
       productResolver: makeMockResolver(),
       walletResolver: noWalletResolver,
     });
@@ -178,12 +195,12 @@ describe('StripeBridge', () => {
       },
     });
 
-    await expect(bridge.handleNotification(emptyHeaders, toBody(event))).rejects.toMatchObject({ code: 'WALLET_NOT_LINKED' });
+    await expect(callWithSignedEvent(bridge, event)).rejects.toMatchObject({ code: 'WALLET_NOT_LINKED' });
   });
 
   it('returns null instruction when product is not mapped', async () => {
     const bridge = new StripeBridge({
-      webhookSecret: 'whsec_test',
+      webhookSecret: TEST_WEBHOOK_SECRET,
       productResolver: makeMockResolver(),
       walletResolver: makeMockWalletResolver(),
     });
@@ -200,16 +217,40 @@ describe('StripeBridge', () => {
       },
     });
 
-    const result = await bridge.handleNotification(emptyHeaders, toBody(event));
+    const result = await callWithSignedEvent(bridge, event);
     // Stripe bridge logs a warning but doesn't throw; it returns empty productId
     expect(result.notification.productId).toBe('');
     expect(result.instruction).toBeNull();
   });
 
+  it('rejects requests without stripe-signature header', async () => {
+    const bridge = new StripeBridge({
+      webhookSecret: TEST_WEBHOOK_SECRET,
+      productResolver: makeMockResolver(),
+      walletResolver: makeMockWalletResolver(),
+    });
+
+    await expect(
+      bridge.handleNotification({}, toBody(makeStripeEvent())),
+    ).rejects.toMatchObject({ code: 'INVALID_SIGNATURE' });
+  });
+
+  it('rejects requests with invalid stripe-signature', async () => {
+    const bridge = new StripeBridge({
+      webhookSecret: TEST_WEBHOOK_SECRET,
+      productResolver: makeMockResolver(),
+      walletResolver: makeMockWalletResolver(),
+    });
+
+    await expect(
+      bridge.handleNotification({ 'stripe-signature': 'bad_sig' }, toBody(makeStripeEvent())),
+    ).rejects.toMatchObject({ code: 'INVALID_SIGNATURE' });
+  });
+
   it('falls back to walletResolver when no metadata.wallet', async () => {
     const walletResolver = makeMockWalletResolver();
     const bridge = new StripeBridge({
-      webhookSecret: 'whsec_test',
+      webhookSecret: TEST_WEBHOOK_SECRET,
       productResolver: makeMockResolver(),
       walletResolver,
     });
@@ -225,7 +266,7 @@ describe('StripeBridge', () => {
       },
     });
 
-    const result = await bridge.handleNotification(emptyHeaders, toBody(event));
+    const result = await callWithSignedEvent(bridge, event);
     expect(result.notification.userWallet).toBe('7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU');
     expect(walletResolver.resolveWallet).toHaveBeenCalledWith('stripe', 'cus_xyz');
   });

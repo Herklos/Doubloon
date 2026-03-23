@@ -10,6 +10,10 @@ import type {
 import { nullLogger, isMintInstruction, DoubloonError } from '@doubloon/core';
 import { mintWithRetry } from './mint-retry.js';
 import type { ChainWriter, ChainSigner, MintRetryOpts, MintRetryResult } from './mint-retry.js';
+import { MemoryDedupStore } from './dedup.js';
+import type { DedupStore } from './dedup.js';
+import { createRateLimiter } from './rate-limiter.js';
+import type { RateLimiterConfig, RateLimiter } from './rate-limiter.js';
 
 export interface ServerConfig {
   chain: {
@@ -62,15 +66,42 @@ export interface ServerConfig {
     context: { store: Store; retryCount: number; willStoreRetry: boolean },
   ) => Promise<void>;
 
+  /**
+   * Deduplication store. If not provided, an in-memory store is used automatically.
+   * For multi-instance deployments, provide a Redis or Postgres-backed implementation.
+   */
+  dedup?: DedupStore;
+
+  /** @deprecated Use `dedup` instead. Kept for backwards compatibility. */
   isDuplicate?: (key: string) => Promise<boolean>;
+  /** @deprecated Use `dedup` instead. */
   markProcessed?: (key: string) => Promise<void>;
+  /** @deprecated Use `dedup` instead. */
   clearProcessed?: (key: string) => Promise<void>;
+
+  /**
+   * Rate limiter config. If not provided, defaults to 60 req/min per IP.
+   * Set to `false` to disable rate limiting entirely.
+   */
+  rateLimiter?: RateLimiterConfig | false;
 
   logger?: Logger;
 }
 
 export function createServer(config: ServerConfig) {
   const logger = config.logger ?? nullLogger;
+
+  // Initialize dedup — always on, defaults to in-memory
+  const dedup: DedupStore = config.dedup ?? (
+    config.isDuplicate
+      ? { isDuplicate: config.isDuplicate, markProcessed: config.markProcessed ?? (async () => {}), clearProcessed: config.clearProcessed ?? (async () => {}) }
+      : new MemoryDedupStore()
+  );
+
+  // Initialize rate limiter — defaults to 60 req/min, can be disabled with `false`
+  const rateLimiter: RateLimiter | null = config.rateLimiter === false
+    ? null
+    : createRateLimiter(config.rateLimiter ?? undefined);
 
   function detectStore(req: {
     headers: Record<string, string>;
@@ -94,6 +125,15 @@ export function createServer(config: ServerConfig) {
     headers: Record<string, string>;
     body: Buffer | string;
   }): Promise<{ status: number; body?: string }> {
+    // Rate limiting
+    if (rateLimiter) {
+      const allowed = await rateLimiter.check(req);
+      if (!allowed) {
+        logger.warn('Rate limited', { headers: req.headers });
+        return { status: 429, body: 'Too many requests' };
+      }
+    }
+
     const store = detectStore(req);
     logger.info('Webhook received', { store });
 
@@ -124,11 +164,8 @@ export function createServer(config: ServerConfig) {
       }
       const result = await bridge.handleNotification(req.headers, body);
 
-      // Deduplication
-      if (
-        config.isDuplicate &&
-        (await config.isDuplicate(result.notification.deduplicationKey))
-      ) {
+      // Deduplication (always active)
+      if (await dedup.isDuplicate(result.notification.deduplicationKey)) {
         logger.info('Duplicate notification, skipping', {
           key: result.notification.deduplicationKey,
         });
@@ -136,9 +173,7 @@ export function createServer(config: ServerConfig) {
       }
 
       // Mark as processed BEFORE processing to prevent duplicate processing
-      if (config.markProcessed) {
-        await config.markProcessed(result.notification.deduplicationKey);
-      }
+      await dedup.markProcessed(result.notification.deduplicationKey);
 
       try {
         // Process instruction
@@ -158,11 +193,9 @@ export function createServer(config: ServerConfig) {
         }
       } catch (processingError) {
         // Clear the dedup key so the store can retry
-        if (config.clearProcessed) {
-          try {
-            await config.clearProcessed(result.notification.deduplicationKey);
-          } catch { /* don't mask the original error */ }
-        }
+        try {
+          await dedup.clearProcessed(result.notification.deduplicationKey);
+        } catch { /* don't mask the original error */ }
         throw processingError;
       }
 

@@ -6,3 +6,9 @@ export type { MintRetryOpts, MintRetryResult, ChainWriter, ChainSigner } from '.
 
 export { createReconciliationRunner } from './reconciliation.js';
 export type { ReconciliationConfig, ReconciliationItem, ReconciliationReport } from './reconciliation.js';
+
+export { MemoryDedupStore } from './dedup.js';
+export type { DedupStore } from './dedup.js';
+
+export { createRateLimiter, MemoryRateLimiterStore } from './rate-limiter.js';
+export type { RateLimiterConfig, RateLimiter, RateLimiterStore } from './rate-limiter.js';

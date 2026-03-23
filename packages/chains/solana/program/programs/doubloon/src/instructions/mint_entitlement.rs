@@ -58,8 +58,9 @@ pub fn handler(
 
     let clock = Clock::get()?;
 
-    // Authorization check
-    let _auth_source = check_mint_authorization(
+    // Authorization check — the returned source is used instead of the user-supplied
+    // `source` parameter to prevent audit trail manipulation.
+    let auth_source = check_mint_authorization(
         ctx.accounts.signer.key,
         &ctx.accounts.platform,
         &ctx.accounts.product,
@@ -67,9 +68,12 @@ pub fn handler(
         &clock,
     )?;
 
-    // Increment delegate mints_used if applicable
-    if let Some(delegate) = &mut ctx.accounts.delegate {
-        if delegate.delegate == *ctx.accounts.signer.key {
+    // Use the verified auth source; ignore user-supplied `source` parameter
+    let source = auth_source;
+
+    // Increment delegate mints_used only when authorized via the delegate path
+    if source == crate::state::EntitlementSource::Delegate as u8 {
+        if let Some(delegate) = &mut ctx.accounts.delegate {
             delegate.mints_used = delegate.mints_used.checked_add(1).unwrap();
         }
     }

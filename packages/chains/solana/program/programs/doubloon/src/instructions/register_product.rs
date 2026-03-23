@@ -13,6 +13,7 @@ pub struct RegisterProduct<'info> {
         seeds = [Platform::SEED],
         bump = platform.bump,
         constraint = !platform.frozen @ DoubloonError::PlatformFrozen,
+        constraint = creator.key() == platform.authority @ DoubloonError::Unauthorized,
     )]
     pub platform: Account<'info, Platform>,
 

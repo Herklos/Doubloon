@@ -10,22 +10,24 @@
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
     "lint": "eslint src/"
   },
   "dependencies": {
+    "@doubloon/auth": "workspace:*",
     "@doubloon/core": "workspace:*",
-    "@doubloon/storage": "workspace:*",
-    "@doubloon/auth": "workspace:*"
+    "@doubloon/storage": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "stripe": "^17.7.0",
     "typescript": "^5.6.0",
-    "vitest": "^2.1.0",
-    "stripe": "^17.0.0"
+    "vitest": "^2.1.0"
   },
   "peerDependencies": {
     "stripe": "^17.0.0"
