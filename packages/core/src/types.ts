@@ -251,6 +251,19 @@ export interface ProductStoreMapping {
 }
 
 /**
+ * Read-only chain reader interface.
+ * Implemented by DoubloonSolanaReader, DoubloonEvmReader, LocalChainReader,
+ * and lightweight mobile checkers. Consumers should depend on this interface
+ * rather than concrete implementations.
+ */
+export interface ChainReader {
+  checkEntitlement(productId: string, wallet: string): Promise<EntitlementCheck>;
+  checkEntitlements(productIds: string[], wallet: string): Promise<EntitlementCheckBatch>;
+  getEntitlement(productId: string, wallet: string): Promise<Entitlement | null>;
+  getProduct(productId: string): Promise<Product | null>;
+}
+
+/**
  * Off-chain product metadata JSON structure.
  */
 export interface ProductMetadata {

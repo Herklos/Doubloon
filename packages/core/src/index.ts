@@ -10,6 +10,7 @@ export type {
   Entitlement,
   EntitlementCheck,
   EntitlementCheckBatch,
+  ChainReader,
   MintInstruction,
   RevokeInstruction,
   StoreNotification,

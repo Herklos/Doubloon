@@ -212,6 +212,28 @@ importers:
         specifier: ^2.1.0
         version: 2.1.9(@types/node@22.7.5)
 
+  packages/clients/checker-mobile:
+    dependencies:
+      '@doubloon/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@noble/curves':
+        specifier: ^1.4.0
+        version: 1.9.7
+      '@noble/hashes':
+        specifier: ^1.4.0
+        version: 1.8.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.7.5
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.7.5)
+
   packages/clients/react-native:
     dependencies:
       '@doubloon/core':
@@ -2672,7 +2694,7 @@ snapshots:
 
   '@scure/bip32@1.7.0':
     dependencies:
-      '@noble/curves': 1.9.1
+      '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 
