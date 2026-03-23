@@ -9,20 +9,20 @@ export interface DoubloonNFTConfig {
 }
 
 export class DoubloonNFTClient {
-  private contractAddress: string;
-  private rpcUrl: string;
-  private chainId: number;
-  private logger: Logger;
+  readonly #contractAddress: string;
+  readonly #rpcUrl: string;
+  readonly #chainId: number;
+  readonly #logger: Logger;
 
   constructor(config: DoubloonNFTConfig) {
-    this.contractAddress = config.contractAddress;
-    this.rpcUrl = config.rpcUrl;
-    this.chainId = config.chainId;
-    this.logger = config.logger ?? nullLogger;
+    this.#contractAddress = config.contractAddress;
+    this.#rpcUrl = config.rpcUrl;
+    this.#chainId = config.chainId;
+    this.#logger = config.logger ?? nullLogger;
   }
 
   computeTokenId(productId: string, userAddress: string): string {
-    this.logger.debug('computeTokenId', { productId, userAddress });
+    this.#logger.debug('computeTokenId', { productId, userAddress });
     throw new DoubloonError(
       'RPC_ERROR',
       'NFT client requires viem for keccak256. Install viem and configure a PublicClient.',
@@ -30,7 +30,7 @@ export class DoubloonNFTClient {
   }
 
   async getExpiration(tokenId: string): Promise<Date | null> {
-    this.logger.debug('getExpiration', { tokenId });
+    this.#logger.debug('getExpiration', { tokenId });
     throw new DoubloonError(
       'RPC_ERROR',
       'NFT client requires a configured RPC client. Install viem and pass a PublicClient.',
@@ -38,7 +38,7 @@ export class DoubloonNFTClient {
   }
 
   async isRenewable(tokenId: string): Promise<boolean> {
-    this.logger.debug('isRenewable', { tokenId });
+    this.#logger.debug('isRenewable', { tokenId });
     throw new DoubloonError(
       'RPC_ERROR',
       'NFT client requires a configured RPC client. Install viem and pass a PublicClient.',
@@ -51,7 +51,7 @@ export class DoubloonNFTClient {
     expiration: Date;
     renewable: boolean;
   }): Promise<{ hash: string }> {
-    this.logger.info('mintSubscriptionNFT', params);
+    this.#logger.info('mintSubscriptionNFT', params);
     throw new DoubloonError(
       'RPC_ERROR',
       'NFT client requires a configured wallet client. Install viem and use createWalletClient.',
@@ -62,7 +62,7 @@ export class DoubloonNFTClient {
     tokenId: string;
     durationSeconds: number;
   }): Promise<{ hash: string }> {
-    this.logger.info('renewSubscription', params);
+    this.#logger.info('renewSubscription', params);
     throw new DoubloonError(
       'RPC_ERROR',
       'NFT client requires a configured wallet client. Install viem and use createWalletClient.',

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DoubloonNFTClient } from '../src/erc5643.js';
+import { DoubloonNFTClient } from '../src/index.js';
 
 describe('DoubloonNFTClient', () => {
   const client = new DoubloonNFTClient({
