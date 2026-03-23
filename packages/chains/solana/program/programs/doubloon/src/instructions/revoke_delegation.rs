@@ -10,6 +10,7 @@ pub struct RevokeDelegation<'info> {
     pub platform: Account<'info, Platform>,
 
     #[account(
+        mut,
         seeds = [Product::SEED, product.product_id.as_ref()],
         bump = product.bump,
     )]
@@ -17,6 +18,7 @@ pub struct RevokeDelegation<'info> {
 
     #[account(
         mut,
+        close = signer,
         seeds = [MintDelegate::SEED, product.product_id.as_ref(), delegate.delegate.as_ref()],
         bump = delegate.bump,
     )]
@@ -25,6 +27,7 @@ pub struct RevokeDelegation<'info> {
 
 pub fn handler(ctx: Context<RevokeDelegation>) -> Result<()> {
     check_creator_or_platform(ctx.accounts.signer.key, &ctx.accounts.platform, &ctx.accounts.product)?;
-    ctx.accounts.delegate.active = false;
+    // Account is closed via `close = signer` constraint, freeing the PDA for re-delegation
+    ctx.accounts.product.delegate_count = ctx.accounts.product.delegate_count.saturating_sub(1);
     Ok(())
 }

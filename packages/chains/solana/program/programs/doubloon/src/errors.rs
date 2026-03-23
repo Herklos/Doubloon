@@ -34,4 +34,7 @@ pub enum DoubloonError {
 
     #[msg("Entitlement is not active (cannot extend a revoked entitlement; mint instead)")]
     EntitlementNotActive,
+
+    #[msg("Delegate has reached the maximum number of allowed mints")]
+    DelegateMintLimitReached,
 }

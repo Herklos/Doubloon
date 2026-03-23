@@ -11,7 +11,7 @@ pub struct Product {
     pub active: bool,
     pub frozen: bool,
     pub entitlement_count: u64,
-    pub delegate_count: u16,
+    pub delegate_count: u32,
     pub default_duration: i64,
     pub bump: u8,
 }
@@ -28,7 +28,7 @@ impl Product {
         + 8 + 8
         + 1 + 1
         + 8
-        + 2
+        + 4
         + 8
         + 1;
 }

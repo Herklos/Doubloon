@@ -57,6 +57,14 @@ pub fn handler(
         &clock,
     )?;
 
+    // Increment delegate mints_used to enforce max_mints cap
+    if let Some(delegate) = &mut ctx.accounts.delegate {
+        if delegate.delegate == *ctx.accounts.signer.key {
+            delegate.mints_used = delegate.mints_used.checked_add(1)
+                .ok_or(DoubloonError::DelegateMintLimitReached)?;
+        }
+    }
+
     let entitlement = &mut ctx.accounts.entitlement;
 
     // Cannot shorten expiry (unless going to lifetime)

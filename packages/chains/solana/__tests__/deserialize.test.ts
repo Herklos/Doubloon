@@ -88,7 +88,7 @@ function buildProductBuffer(opts: {
   defaultDuration: bigint;
 }): Buffer {
   // Conservative upper bound for allocation
-  const size = DISC + 32 + 32 + (4 + 200) + (4 + 400) + 8 + 8 + 1 + 1 + 8 + 2 + 8;
+  const size = DISC + 32 + 32 + (4 + 200) + (4 + 400) + 8 + 8 + 1 + 1 + 8 + 4 + 8;
   const buf = Buffer.alloc(size);
   let offset = DISC;
 
@@ -101,7 +101,7 @@ function buildProductBuffer(opts: {
   buf[offset] = opts.active ? 1 : 0; offset += 1;
   buf[offset] = opts.frozen ? 1 : 0; offset += 1;
   buf.writeBigUInt64LE(opts.entitlementCount, offset); offset += 8;
-  buf.writeUInt16LE(opts.delegateCount, offset); offset += 2;
+  buf.writeUInt32LE(opts.delegateCount, offset); offset += 4;
   buf.writeBigInt64LE(opts.defaultDuration, offset); offset += 8;
 
   return buf.subarray(0, offset);

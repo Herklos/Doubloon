@@ -26,6 +26,10 @@ function readU16(data: Buffer, offset: number): number {
   return data.readUInt16LE(offset);
 }
 
+function readU32(data: Buffer, offset: number): number {
+  return data.readUInt32LE(offset);
+}
+
 function readBool(data: Buffer, offset: number): boolean {
   return data[offset] !== 0;
 }
@@ -77,7 +81,7 @@ export function deserializeProduct(data: Buffer): Product {
   const active = readBool(data, offset); offset += 1;
   const frozen = readBool(data, offset); offset += 1;
   const entitlementCount = readU64(data, offset); offset += 8;
-  const delegateCount = readU16(data, offset); offset += 2;
+  const delegateCount = readU32(data, offset); offset += 4;
   const defaultDuration = readI64(data, offset); offset += 8;
 
   return {

@@ -59,7 +59,8 @@ pub fn handler(
     delegate.active = true;
     delegate.bump = ctx.bumps.delegate;
 
-    ctx.accounts.product.delegate_count = ctx.accounts.product.delegate_count.checked_add(1).unwrap();
+    ctx.accounts.product.delegate_count = ctx.accounts.product.delegate_count.checked_add(1)
+        .ok_or(DoubloonError::DelegateMintLimitReached)?;
 
     Ok(())
 }
