@@ -37,11 +37,21 @@ export function verifySIWS(
   message: string,
   signature: Uint8Array,
   expectedNonce: string,
+  expectedDomain?: string,
 ): { wallet: string; expiresAt: Date } {
   const lines = message.split('\n');
   const wallet = parseWalletFromLines(lines);
   const nonce = parseFieldFromLines(lines, 'Nonce');
   const expiresAtStr = parseFieldFromLines(lines, 'Expiration Time');
+
+  // Verify domain to prevent cross-domain replay attacks
+  if (expectedDomain) {
+    const domainLine = lines[0];
+    const expectedPrefix = `${expectedDomain} wants you to sign in with your Solana account:`;
+    if (domainLine !== expectedPrefix) {
+      throw new DoubloonError('SIGNATURE_INVALID', 'Domain mismatch in SIWS message');
+    }
+  }
 
   if (nonce !== expectedNonce) {
     throw new DoubloonError('SIGNATURE_INVALID', 'Nonce mismatch');
