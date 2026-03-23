@@ -10,10 +10,14 @@ export interface DoubloonNFTConfig {
 
 export class DoubloonNFTClient {
   private contractAddress: string;
+  private rpcUrl: string;
+  private chainId: number;
   private logger: Logger;
 
   constructor(config: DoubloonNFTConfig) {
     this.contractAddress = config.contractAddress;
+    this.rpcUrl = config.rpcUrl;
+    this.chainId = config.chainId;
     this.logger = config.logger ?? nullLogger;
   }
 

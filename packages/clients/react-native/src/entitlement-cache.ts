@@ -28,9 +28,15 @@ export class EntitlementCache {
 
   set(productId: string, wallet: string, check: EntitlementCheck, ttlMs?: number): void {
     const key = `${productId}:${wallet}`;
+    const requestedTtl = ttlMs ?? this.defaultTtlMs;
+    // Clamp TTL to entitlement expiry to avoid serving stale "entitled" results
+    const expiryTtl = check.expiresAt
+      ? Math.max(0, check.expiresAt.getTime() - Date.now())
+      : requestedTtl;
+    const effectiveTtl = Math.min(requestedTtl, expiryTtl);
     this.cache.set(key, {
       check,
-      expiresAt: Date.now() + (ttlMs ?? this.defaultTtlMs),
+      expiresAt: Date.now() + effectiveTtl,
     });
     if (this.cache.size > this.maxEntries) {
       // Evict oldest entry (first inserted in Map iteration order)

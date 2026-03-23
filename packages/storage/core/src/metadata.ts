@@ -75,6 +75,9 @@ export class DefaultStoreProductResolver implements StoreProductResolver {
   /** Call to invalidate the in-memory reverse index after product changes. */
   invalidateIndex(): void {
     this.reverseIndex = null;
+    if (this.cache) {
+      void this.cache.invalidatePrefix('sku:');
+    }
   }
 
   async resolveProductId(store: Store, storeSku: string): Promise<string | null> {
@@ -99,6 +102,7 @@ export class DefaultStoreProductResolver implements StoreProductResolver {
     if (!bindings) return null;
     if ('productIds' in bindings) return [...bindings.productIds];
     if ('priceIds' in bindings) return [...(bindings as { priceIds: readonly string[] }).priceIds];
+    if (store === 'x402') return [productId]; // x402 has no SKU concept; return productId as identifier
     return null;
   }
 }
