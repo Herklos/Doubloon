@@ -112,6 +112,7 @@ contract Doubloon {
         string calldata metadataUri,
         int64 defaultDuration
     ) external {
+        require(initialized, "Platform not initialized");
         require(!platformFrozen, "Platform frozen");
         require(!products[productId].exists, "Product already exists");
         require(bytes(name).length <= 64, "Name too long");
@@ -142,6 +143,7 @@ contract Doubloon {
         string calldata metadataUri,
         int64 defaultDuration
     ) external onlyCreatorOrPlatform(productId) {
+        require(products[productId].exists, "Product does not exist");
         require(!products[productId].frozen, "Product frozen");
         Product storage p = products[productId];
         if (bytes(name).length > 0) {
@@ -189,6 +191,7 @@ contract Doubloon {
     ) external onlyCreatorOrPlatform(productId) {
         require(products[productId].active, "Product not active");
         require(!products[productId].frozen, "Product frozen");
+        require(delegate != address(0), "Cannot delegate to zero address");
         require(delegate != products[productId].creator, "Cannot delegate to creator");
 
         delegates[productId][delegate] = MintDelegateData({
@@ -223,6 +226,7 @@ contract Doubloon {
         string calldata sourceId,
         bool autoRenew
     ) external onlyMinter(productId) productUsable(productId) {
+        require(user != address(0), "Cannot mint to zero address");
         require(bytes(sourceId).length <= 128, "Source ID too long");
         _incrementDelegateMints(productId);
 
@@ -278,6 +282,11 @@ contract Doubloon {
         }
 
         if (newExpiresAt == 0) {
+            // Lifetime upgrade restricted to creator or platform authority
+            require(
+                msg.sender == products[productId].creator || msg.sender == platformAuthority,
+                "Only creator or platform can grant lifetime"
+            );
             e.expiresAt = 0;
         } else if (e.expiresAt != 0) {
             e.expiresAt = newExpiresAt > e.expiresAt ? newExpiresAt : e.expiresAt;

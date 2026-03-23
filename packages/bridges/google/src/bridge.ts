@@ -105,7 +105,7 @@ export class GoogleBridge {
       sub.purchaseToken,
     );
     if (!userWallet) {
-      throw new DoubloonError('WALLET_NOT_LINKED', `No wallet linked for Google purchase token: ${sub.purchaseToken}`);
+      throw new DoubloonError('WALLET_NOT_LINKED', `No wallet linked for Google purchase token: ${sub.purchaseToken.substring(0, 8)}...`);
     }
 
     const storeTimestamp = new Date(Number(rtdn.eventTimeMillis));

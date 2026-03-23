@@ -36,9 +36,9 @@ export function createX402Middleware(config: X402MiddlewareConfig) {
       const result = await config.bridge.verifyAndMint({
         paymentId: String(receipt.paymentId ?? ''),
         wallet: String(receipt.wallet ?? ''),
-        productId: String(receipt.productId ?? config.productId),
+        productId: config.productId,
         amountUsd: Number(receipt.amountUsd ?? 0),
-        durationSeconds: Number(receipt.durationSeconds ?? config.durationSeconds),
+        durationSeconds: Math.min(Number(receipt.durationSeconds ?? config.durationSeconds), config.durationSeconds),
         timestamp: Number(receipt.timestamp ?? Date.now()),
         raw: receipt,
       });
