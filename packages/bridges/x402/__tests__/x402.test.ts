@@ -154,7 +154,15 @@ describe('createX402Middleware', () => {
       durationSeconds: 3600,
     });
 
-    const req = { headers: { 'x-payment': 'valid-payment-data' } } as any;
+    const paymentData = JSON.stringify({
+      paymentId: 'pay_123',
+      wallet: 'wallet123',
+      productId: 'test-product',
+      amountUsd: 5,
+      durationSeconds: 3600,
+      timestamp: Date.now(),
+    });
+    const req = { headers: { 'x-payment': Buffer.from(paymentData).toString('base64') } } as any;
     const res = {} as any;
     const next = vi.fn();
     await middleware(req, res, next);

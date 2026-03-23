@@ -20,6 +20,12 @@ function makeMockWalletResolver(): WalletResolver {
   };
 }
 
+const emptyHeaders: Record<string, string> = {};
+
+function toBody(str: string): Buffer {
+  return Buffer.from(str, 'utf-8');
+}
+
 function makeRTDN(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({
     version: '1.0',
@@ -44,7 +50,7 @@ describe('GoogleBridge', () => {
       walletResolver: makeMockWalletResolver(),
     });
 
-    const result = await bridge.handleNotification(makeRTDN());
+    const result = await bridge.handleNotification(emptyHeaders, toBody(makeRTDN()));
     expect(result.notification.type).toBe('initial_purchase');
     expect(result.notification.store).toBe('google');
     expect(result.instruction).not.toBeNull();
@@ -70,7 +76,7 @@ describe('GoogleBridge', () => {
       },
     });
 
-    const result = await bridge.handleNotification(msg);
+    const result = await bridge.handleNotification(emptyHeaders, toBody(msg));
     expect(result.notification.type).toBe('renewal');
     expect(result.instruction).not.toBeNull();
     expect((result.instruction as any).source).toBe('google');
@@ -94,7 +100,7 @@ describe('GoogleBridge', () => {
       },
     });
 
-    const result = await bridge.handleNotification(msg);
+    const result = await bridge.handleNotification(emptyHeaders, toBody(msg));
     expect(result.notification.type).toBe('cancellation');
     expect(result.instruction).toBeNull();
   });
@@ -116,7 +122,7 @@ describe('GoogleBridge', () => {
       },
     });
 
-    const result = await bridge.handleNotification(msg);
+    const result = await bridge.handleNotification(emptyHeaders, toBody(msg));
     expect(result.notification.type).toBe('revocation');
     expect(result.instruction).not.toBeNull();
     expect((result.instruction as any).reason).toContain('google:revocation');
@@ -137,7 +143,7 @@ describe('GoogleBridge', () => {
       testNotification: { version: '1.0' },
     });
 
-    const result = await bridge.handleNotification(msg);
+    const result = await bridge.handleNotification(emptyHeaders, toBody(msg));
     expect(result.notification.type).toBe('test');
     expect(result.instruction).toBeNull();
     expect(result.requiresAcknowledgment).toBe(false);
@@ -160,7 +166,7 @@ describe('GoogleBridge', () => {
       },
     });
 
-    await expect(bridge.handleNotification(msg)).rejects.toMatchObject({ code: 'PRODUCT_NOT_MAPPED' });
+    await expect(bridge.handleNotification(emptyHeaders, toBody(msg))).rejects.toMatchObject({ code: 'PRODUCT_NOT_MAPPED' });
   });
 
   it('throws WALLET_NOT_LINKED when wallet cannot be resolved', async () => {
@@ -176,7 +182,7 @@ describe('GoogleBridge', () => {
       walletResolver: noWalletResolver,
     });
 
-    await expect(bridge.handleNotification(makeRTDN())).rejects.toMatchObject({ code: 'WALLET_NOT_LINKED' });
+    await expect(bridge.handleNotification(emptyHeaders, toBody(makeRTDN()))).rejects.toMatchObject({ code: 'WALLET_NOT_LINKED' });
   });
 
   it('throws INVALID_RECEIPT for RTDN without subscription or test notification', async () => {
@@ -193,6 +199,6 @@ describe('GoogleBridge', () => {
       eventTimeMillis: String(Date.now()),
     });
 
-    await expect(bridge.handleNotification(msg)).rejects.toMatchObject({ code: 'INVALID_RECEIPT' });
+    await expect(bridge.handleNotification(emptyHeaders, toBody(msg))).rejects.toMatchObject({ code: 'INVALID_RECEIPT' });
   });
 });

@@ -25,9 +25,24 @@ export function createX402Middleware(config: X402MiddlewareConfig) {
     }
 
     try {
-      // Verify payment and mint entitlement using the raw payment header
-      const result = await config.bridge.verifyAndMint(paymentHeader);
-      // Attach entitlement info to request for downstream handlers
+      // Parse the payment header (base64-encoded JSON receipt from x402 facilitator)
+      let receipt: Record<string, unknown>;
+      try {
+        receipt = JSON.parse(Buffer.from(paymentHeader, 'base64').toString('utf-8'));
+      } catch {
+        receipt = JSON.parse(paymentHeader);
+      }
+
+      const result = await config.bridge.verifyAndMint({
+        paymentId: String(receipt.paymentId ?? ''),
+        wallet: String(receipt.wallet ?? ''),
+        productId: String(receipt.productId ?? config.productId),
+        amountUsd: Number(receipt.amountUsd ?? 0),
+        durationSeconds: Number(receipt.durationSeconds ?? config.durationSeconds),
+        timestamp: Number(receipt.timestamp ?? Date.now()),
+        raw: receipt,
+      });
+
       req.doubloon = {
         entitled: true,
         wallet: result.notification.userWallet,
@@ -35,6 +50,8 @@ export function createX402Middleware(config: X402MiddlewareConfig) {
       };
       next();
     } catch (err) {
+      const logger = (config as any).logger;
+      if (logger?.error) logger.error('x402 payment verification failed', { error: err });
       res.status?.(402);
       res.json?.({ error: 'Payment verification failed' }) || res.end?.('Payment verification failed');
     }

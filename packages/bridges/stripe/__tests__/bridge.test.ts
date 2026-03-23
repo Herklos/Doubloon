@@ -20,6 +20,12 @@ function makeMockWalletResolver(): WalletResolver {
   };
 }
 
+const emptyHeaders: Record<string, string> = {};
+
+function toBody(event: unknown): Buffer {
+  return Buffer.from(JSON.stringify(event), 'utf-8');
+}
+
 function makeStripeEvent(overrides: Record<string, unknown> = {}) {
   return {
     id: 'evt_test_123',
@@ -50,7 +56,7 @@ describe('StripeBridge', () => {
       walletResolver: makeMockWalletResolver(),
     });
 
-    const result = await bridge.handleNotification(makeStripeEvent());
+    const result = await bridge.handleNotification(emptyHeaders, toBody(makeStripeEvent()));
     expect(result.notification.type).toBe('initial_purchase');
     expect(result.notification.store).toBe('stripe');
     expect(result.notification.environment).toBe('sandbox');
@@ -81,7 +87,7 @@ describe('StripeBridge', () => {
       },
     });
 
-    const result = await bridge.handleNotification(event);
+    const result = await bridge.handleNotification(emptyHeaders, toBody(event));
     expect(result.notification.type).toBe('cancellation');
     expect(result.instruction).toBeNull();
   });
@@ -105,7 +111,7 @@ describe('StripeBridge', () => {
       },
     });
 
-    const result = await bridge.handleNotification(event);
+    const result = await bridge.handleNotification(emptyHeaders, toBody(event));
     expect(result.notification.type).toBe('expiration');
     expect(result.instruction).not.toBeNull();
     expect((result.instruction as any).reason).toContain('stripe:expiration');
@@ -130,7 +136,7 @@ describe('StripeBridge', () => {
       },
     });
 
-    const result = await bridge.handleNotification(event);
+    const result = await bridge.handleNotification(emptyHeaders, toBody(event));
     expect(result.notification.type).toBe('refund');
     expect(result.instruction).not.toBeNull();
     expect((result.instruction as any).reason).toContain('stripe:refund');
@@ -144,7 +150,7 @@ describe('StripeBridge', () => {
     });
 
     const event = makeStripeEvent({ livemode: true });
-    const result = await bridge.handleNotification(event);
+    const result = await bridge.handleNotification(emptyHeaders, toBody(event));
     expect(result.notification.environment).toBe('production');
   });
 
@@ -172,7 +178,7 @@ describe('StripeBridge', () => {
       },
     });
 
-    await expect(bridge.handleNotification(event)).rejects.toMatchObject({ code: 'WALLET_NOT_LINKED' });
+    await expect(bridge.handleNotification(emptyHeaders, toBody(event))).rejects.toMatchObject({ code: 'WALLET_NOT_LINKED' });
   });
 
   it('returns null instruction when product is not mapped', async () => {
@@ -194,7 +200,7 @@ describe('StripeBridge', () => {
       },
     });
 
-    const result = await bridge.handleNotification(event);
+    const result = await bridge.handleNotification(emptyHeaders, toBody(event));
     // Stripe bridge logs a warning but doesn't throw; it returns empty productId
     expect(result.notification.productId).toBe('');
     expect(result.instruction).toBeNull();
@@ -219,7 +225,7 @@ describe('StripeBridge', () => {
       },
     });
 
-    const result = await bridge.handleNotification(event);
+    const result = await bridge.handleNotification(emptyHeaders, toBody(event));
     expect(result.notification.userWallet).toBe('7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU');
     expect(walletResolver.resolveWallet).toHaveBeenCalledWith('stripe', 'cus_xyz');
   });

@@ -42,7 +42,11 @@ export class GoogleBridge {
    * The `messageData` should be the base64-decoded JSON string from the
    * Pub/Sub message `data` field.
    */
-  async handleNotification(messageData: string): Promise<BridgeResult> {
+  async handleNotification(
+    _headers: Record<string, string>,
+    body: Buffer,
+  ): Promise<BridgeResult> {
+    const messageData = typeof body === 'string' ? body : body.toString('utf-8');
     let rtdn: GoogleRTDN;
     try {
       rtdn = JSON.parse(messageData);

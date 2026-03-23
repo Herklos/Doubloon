@@ -121,7 +121,7 @@ export class AppleBridge {
           expiresAt: tx.expiresDate ? new Date(tx.expiresDate as number) : null,
           source: 'apple',
           sourceId: String(tx.originalTransactionId ?? tx.transactionId ?? ''),
-        };
+        } satisfies MintInstruction;
 
       case 'expiration':
       case 'refund':
@@ -130,7 +130,7 @@ export class AppleBridge {
           productId,
           user: wallet,
           reason: `apple:${type}`,
-        };
+        } satisfies RevokeInstruction;
 
       case 'cancellation':
       case 'uncancellation':

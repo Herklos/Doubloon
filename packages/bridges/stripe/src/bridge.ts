@@ -7,7 +7,7 @@ import type { BridgeResult, StripeBridgeConfig } from './types.js';
  * Minimal Stripe webhook event shape.
  * We keep our own interface to avoid a hard runtime dependency on the Stripe SDK.
  */
-interface StripeWebhookEvent {
+export interface StripeWebhookEvent {
   id: string;
   type: string;
   created: number;
@@ -34,11 +34,30 @@ export class StripeBridge {
   }
 
   /**
-   * Handle a verified Stripe webhook event.
-   * The caller is responsible for signature verification using the Stripe SDK
-   * and the configured `webhookSecret`.
+   * Handle a Stripe webhook request.
+   * Parses and validates the event from the raw body.
+   * TODO: Implement signature verification using webhookSecret from config.
    */
-  async handleNotification(event: StripeWebhookEvent): Promise<BridgeResult> {
+  async handleNotification(
+    _headers: Record<string, string>,
+    body: Buffer,
+  ): Promise<BridgeResult> {
+    const bodyStr = typeof body === 'string' ? body : body.toString('utf-8');
+    let event: StripeWebhookEvent;
+    try {
+      event = JSON.parse(bodyStr);
+    } catch {
+      throw new DoubloonError('INVALID_RECEIPT', 'Invalid Stripe webhook body');
+    }
+
+    if (typeof event.type !== 'string' || typeof event.id !== 'string') {
+      throw new DoubloonError('INVALID_RECEIPT', 'Malformed Stripe event');
+    }
+
+    return this.processEvent(event);
+  }
+
+  private async processEvent(event: StripeWebhookEvent): Promise<BridgeResult> {
     const notificationType = mapStripeEventType(
       event.type,
       event.data.previous_attributes,

@@ -6,7 +6,7 @@ import type { X402BridgeResult, X402BridgeConfig } from './types.js';
 /**
  * Parsed x402 payment receipt.
  */
-interface X402PaymentReceipt {
+export interface X402PaymentReceipt {
   /** Unique payment identifier from the facilitator. */
   paymentId: string;
   /** The wallet address extracted from the payment signature. */

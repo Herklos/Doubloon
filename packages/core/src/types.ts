@@ -208,7 +208,7 @@ export interface StoreNotification {
   /** Which store sent this notification. */
   readonly store: Store;
   /** 'production' or 'sandbox'. */
-  readonly environment: string;
+  readonly environment: 'production' | 'sandbox';
   /** On-chain product ID (after resolution from store SKU). */
   readonly productId: string;
   /** User wallet address (after resolution from store user ID). */
