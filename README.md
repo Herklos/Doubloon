@@ -1,6 +1,18 @@
-# Doubloon
+<p align="center">
+  <a href="#doubloon">
+    <img src="logo.png" alt="Doubloon" width="400">
+  </a>
+</p>
 
-**On-chain entitlements for every payment rail.** Doubloon bridges app store purchases, subscription billing, and open payment protocols to blockchain-native access control. One integration handles Apple, Google, Stripe, and HTTP 402 -- minting tamper-proof entitlements on Solana or EVM chains that your app can check in milliseconds.
+<h1 align="center">Doubloon</h1>
+
+<p align="center">
+  <strong>On-chain entitlements for every payment rail.</strong>
+</p>
+
+<p align="center">
+  Doubloon bridges app store purchases, subscription billing, and open payment protocols to blockchain-native access control. One integration handles Apple, Google, Stripe, and HTTP 402 -- minting tamper-proof entitlements on Solana or EVM chains that your app can check in milliseconds.
+</p>
 
 ```
 Apple App Store ──┐
@@ -21,7 +33,8 @@ HTTP 402 (x402) ──┘   Server         └─── EVM Contract
 - **Delegation system** -- Grant third-party wallets scoped minting authority with expiry and mint caps.
 - **SIWS authentication** -- Sign In With Solana message creation, verification with domain binding, and Ed25519 session tokens.
 - **Pluggable storage** -- In-memory, Redis, Postgres, and S3 adapters for metadata, caching, and deduplication.
-- **React Native client** -- Entitlement cache, receipt packaging, and hook interfaces for mobile apps.
+- **Local dev chain** -- In-memory chain provider for testing and development without blockchain infrastructure.
+- **Client SDKs** -- React Native, Python, and web integration patterns out of the box.
 
 ---
 
@@ -38,11 +51,13 @@ HTTP 402 (x402) ──┘   Server         └─── EVM Contract
 | `@doubloon/bridge-x402` | HTTP 402 Payment Required protocol |
 | `@doubloon/solana` | Solana chain reader, writer, PDA derivation, deserialization |
 | `@doubloon/evm` | EVM chain reader, writer, ABI, ERC-5643 subscription NFTs |
+| `@doubloon/chain-local` | In-memory chain provider for testing and development |
 | `@doubloon/storage` | Storage abstractions: `CacheAdapter`, `MetadataStore`, `StoreProductResolver` |
 | `@doubloon/storage-redis` | Redis-backed cache adapter (SCAN-based invalidation) |
 | `@doubloon/storage-postgres` | Postgres metadata store, wallet resolver, migration SQL |
 | `@doubloon/storage-s3` | S3/R2 metadata store for product JSON and binary assets |
 | `@doubloon/react-native` | Entitlement cache, receipt packagers, hook types |
+| `doubloon` (Python) | Python client for entitlement verification and product ID derivation |
 
 ---
 
@@ -102,6 +117,234 @@ if (check.entitled) {
   console.log('Expires:', check.expiresAt);
 }
 ```
+
+---
+
+## Client Guides
+
+### Web
+
+Web apps check entitlements by calling your backend, which delegates to the Doubloon server. Expose a simple API endpoint and call it from the browser with `fetch`.
+
+**Backend endpoint:**
+
+```typescript
+import { createServer } from '@doubloon/server';
+
+const server = createServer({ /* ... chain, bridges config */ });
+
+// Express / Fastify / any framework
+app.get('/api/entitlements/:productId', async (req, res) => {
+  const wallet = req.query.wallet as string;
+  const check = await server.checkEntitlement(req.params.productId, wallet);
+  res.json(check);
+});
+```
+
+**Frontend usage:**
+
+```typescript
+async function checkAccess(productId: string, wallet: string): Promise<boolean> {
+  const res = await fetch(`/api/entitlements/${productId}?wallet=${wallet}`);
+  const check = await res.json();
+  return check.entitled;
+}
+
+// Gate a feature
+const hasAccess = await checkAccess('a1b2c3...', '0xUserWallet');
+if (hasAccess) {
+  showPremiumContent();
+}
+```
+
+**With caching (recommended for SPAs):**
+
+```typescript
+const cache = new Map<string, { entitled: boolean; expiry: number }>();
+
+async function checkAccessCached(productId: string, wallet: string): Promise<boolean> {
+  const key = `${productId}:${wallet}`;
+  const cached = cache.get(key);
+  if (cached && cached.expiry > Date.now()) return cached.entitled;
+
+  const res = await fetch(`/api/entitlements/${productId}?wallet=${wallet}`);
+  const check = await res.json();
+
+  cache.set(key, {
+    entitled: check.entitled,
+    expiry: Date.now() + (check.expiresAt ? new Date(check.expiresAt).getTime() - Date.now() : 30_000),
+  });
+
+  return check.entitled;
+}
+```
+
+---
+
+### React Native
+
+Install the client SDK alongside your chain reader:
+
+```bash
+pnpm add @doubloon/react-native @doubloon/core
+```
+
+**Check entitlements with caching:**
+
+```typescript
+import { EntitlementCache, createEntitlementChecker } from '@doubloon/react-native';
+
+// Create a cache (30s TTL, max 1000 entries)
+const cache = new EntitlementCache({ defaultTtlMs: 30_000, maxEntries: 1000 });
+
+// Create a checker backed by your server API
+const checker = createEntitlementChecker({
+  reader: {
+    async checkEntitlement(productId, wallet) {
+      // Check cache first
+      const cached = cache.get(productId, wallet);
+      if (cached) return cached;
+
+      // Fetch from backend
+      const res = await fetch(`https://api.myapp.com/entitlements/${productId}?wallet=${wallet}`);
+      const check = await res.json();
+
+      // Cache the result (TTL auto-clamped to entitlement expiry)
+      cache.set(productId, wallet, check);
+      return check;
+    },
+  },
+});
+
+// Use in your app
+const check = await checker.check('product-id-hex', walletAddress);
+if (check.entitled) {
+  // Unlock premium features
+}
+
+// Batch check multiple products
+const results = await checker.checkBatch(['product-a', 'product-b'], walletAddress);
+```
+
+**Package store receipts for webhook submission:**
+
+```typescript
+import { packageAppleReceipt, packageGoogleReceipt } from '@doubloon/react-native';
+
+// After an Apple in-app purchase
+const appleReceipt = packageAppleReceipt(jwsTransactionPayload);
+await fetch('https://api.myapp.com/webhooks', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(appleReceipt),
+});
+
+// After a Google Play purchase
+const googleReceipt = packageGoogleReceipt(purchaseToken, 'com.myapp.premium');
+await fetch('https://api.myapp.com/webhooks', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(googleReceipt),
+});
+```
+
+**Hook type signatures** for building custom React hooks:
+
+```typescript
+import type { UseEntitlementConfig, UseEntitlementResult } from '@doubloon/react-native';
+
+function useEntitlement(config: UseEntitlementConfig): UseEntitlementResult {
+  // Your React hook implementation using config.reader.checkEntitlement
+  // Returns { loading, entitled, check, error, refresh }
+}
+```
+
+---
+
+### Python
+
+Install the Python client:
+
+```bash
+pip install doubloon
+```
+
+**Derive product IDs (matches the TypeScript implementation):**
+
+```python
+from doubloon import derive_product_id_hex, validate_slug
+
+# Human-readable slug -> deterministic 64-char hex ID
+product_id = derive_product_id_hex("pro-monthly")
+# => "a7f3c9..." (SHA-256 of the slug)
+```
+
+**Check entitlements locally (pure function, no I/O):**
+
+```python
+from datetime import datetime, timedelta
+from doubloon import Entitlement, check_entitlement, check_entitlements
+
+# Build an entitlement from your database or API response
+entitlement = Entitlement(
+    product_id="a7f3c9...",
+    user="0xUserWallet",
+    granted_at=datetime(2024, 1, 1),
+    expires_at=datetime.utcnow() + timedelta(days=30),
+    auto_renew=True,
+    source="stripe",
+    source_id="sub_abc123",
+    active=True,
+)
+
+# Check access
+result = check_entitlement(entitlement)
+if result.entitled:
+    print(f"Access granted, expires: {result.expires_at}")
+else:
+    print(f"Access denied, reason: {result.reason}")
+
+# Batch check multiple products
+results = check_entitlements({
+    "product-a-hex": entitlement_a,
+    "product-b-hex": None,  # Not found
+})
+for pid, check in results.items():
+    print(f"{pid}: {'granted' if check.entitled else check.reason}")
+```
+
+**Check entitlements via your backend API:**
+
+```python
+import httpx
+from doubloon import EntitlementCheck
+
+async def check_access(product_id: str, wallet: str) -> EntitlementCheck:
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"https://api.myapp.com/entitlements/{product_id}",
+            params={"wallet": wallet},
+        )
+        data = resp.json()
+        return EntitlementCheck(
+            entitled=data["entitled"],
+            entitlement=None,
+            reason=data["reason"],
+            expires_at=data.get("expiresAt"),
+        )
+```
+
+**Available types** (all frozen dataclasses):
+
+| Type | Description |
+|------|-------------|
+| `Platform` | Platform singleton state (authority, product count, frozen) |
+| `Product` | Registered product metadata |
+| `Entitlement` | On-chain entitlement record |
+| `EntitlementCheck` | Result of checking a single entitlement |
+| `MintDelegate` | Delegation granting minting rights |
+| `MintInstruction` | Instruction to mint an entitlement |
+| `RevokeInstruction` | Instruction to revoke an entitlement |
 
 ---
 
@@ -258,6 +501,51 @@ const store = new S3MetadataStore({
 
 ---
 
+## Local Development
+
+### In-Memory Chain (No Blockchain Required)
+
+```typescript
+import { createLocalChain } from '@doubloon/chain-local';
+import { createServer } from '@doubloon/server';
+
+const local = createLocalChain();
+
+// Register a product
+await local.writer.registerProduct({
+  productId: 'a1b2c3...',
+  name: 'Pro Plan',
+  metadataUri: 'https://example.com/pro.json',
+  defaultDuration: 2592000,
+  signer: local.signer.publicKey,
+});
+
+// Wire into the server -- same code as production
+const server = createServer({
+  chain: {
+    reader: local.reader,
+    writer: local.writer,
+    signer: local.signer,
+  },
+  bridges: { /* your bridges */ },
+  onMintFailure: async () => {},
+});
+
+// Seed test data directly
+local.store.mintEntitlement({
+  productId: 'a1b2c3...',
+  user: '0xTestUser',
+  expiresAt: new Date('2030-01-01'),
+  source: 'stripe',
+  sourceId: 'sub_test_123',
+});
+
+// Reset between tests
+local.store.clear();
+```
+
+---
+
 ## Solana Program
 
 The Anchor program lives in `packages/chains/solana/program/` and provides these instructions:
@@ -315,6 +603,7 @@ packages/
   chains/
     solana/              # Solana reader, writer, Anchor program
     evm/                 # EVM reader, writer, ABI, ERC-5643
+    local/               # In-memory chain for testing/dev
   storage/
     core/                # Storage interfaces, in-memory adapters
     redis/               # Redis cache adapter
@@ -322,6 +611,7 @@ packages/
     s3/                  # S3 metadata store
   clients/
     react-native/        # Mobile client SDK
+    python/              # Python client
 scripts/
   deploy-program.ts      # Solana program deployment
   codegen.ts             # Type generation (Python, JSON Schema)
