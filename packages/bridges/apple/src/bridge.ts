@@ -10,11 +10,17 @@ export class AppleBridge {
   private walletResolver: WalletResolver;
   private environment: 'production' | 'sandbox';
   private bundleId: string;
+  private issuerId: string;
+  private keyId: string;
+  private privateKey: string;
   private logger: Logger;
 
   constructor(config: AppleBridgeConfig) {
     this.environment = config.environment;
     this.bundleId = config.bundleId;
+    this.issuerId = config.issuerId;
+    this.keyId = config.keyId;
+    this.privateKey = config.privateKey;
     this.productResolver = config.productResolver;
     this.walletResolver = config.walletResolver;
     this.logger = config.logger ?? nullLogger;
@@ -24,8 +30,7 @@ export class AppleBridge {
     _headers: Record<string, string>,
     _body: Buffer,
   ): Promise<BridgeResult> {
-    // In production, this verifies the JWS-signed notification
-    // For now, parse the body as JSON for testing
+    // TODO: Implement JWS signature verification (see Apple Server Notifications V2 docs)
     const bodyStr = _body.toString('utf-8');
     let parsed: Record<string, unknown>;
     try {

@@ -240,7 +240,6 @@ contract Doubloon {
             if (expiresAt == 0 || (e.expiresAt != 0 && expiresAt > e.expiresAt)) {
                 e.expiresAt = expiresAt;
             }
-            if (expiresAt == 0) e.expiresAt = 0;
             e.autoRenew = autoRenew;
             e.source = source;
             e.sourceId = sourceId;

@@ -4,8 +4,6 @@ export {
   deriveProductPdaFromSlug,
   deriveEntitlementPda,
   deriveDelegatePda,
-  setProgramId,
-  getProgramId,
 } from './pda.js';
 
 export {

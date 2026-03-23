@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram } from '@solana/web3.js';
 import type { MintInstruction, RevokeInstruction, EntitlementSource, Logger } from '@doubloon/core';
-import { deriveProductId, DoubloonError, nullLogger } from '@doubloon/core';
+import { deriveProductId, DoubloonError, nullLogger, ENTITLEMENT_SOURCE_TO_U8 } from '@doubloon/core';
 import {
   derivePlatformPda,
   deriveProductPda,
@@ -17,16 +17,7 @@ export interface DoubloonSolanaWriterConfig {
 }
 
 function entitlementSourceToU8(source: EntitlementSource): number {
-  const map: Record<EntitlementSource, number> = {
-    platform: 0,
-    creator: 1,
-    delegate: 2,
-    apple: 3,
-    google: 4,
-    stripe: 5,
-    x402: 6,
-  };
-  return map[source];
+  return ENTITLEMENT_SOURCE_TO_U8[source];
 }
 
 const discriminatorCache = new Map<string, Buffer>();

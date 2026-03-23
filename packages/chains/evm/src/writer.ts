@@ -1,4 +1,4 @@
-import type { MintInstruction, RevokeInstruction, EntitlementSource, Logger } from '@doubloon/core';
+import type { MintInstruction, RevokeInstruction, Logger } from '@doubloon/core';
 import { DoubloonError, nullLogger } from '@doubloon/core';
 
 export interface DoubloonEvmWriterConfig {
@@ -6,14 +6,6 @@ export interface DoubloonEvmWriterConfig {
   contractAddress: string;
   chainId: number;
   logger?: Logger;
-}
-
-function entitlementSourceToU8(source: EntitlementSource): number {
-  const map: Record<EntitlementSource, number> = {
-    platform: 0, creator: 1, delegate: 2,
-    apple: 3, google: 4, stripe: 5, x402: 6,
-  };
-  return map[source];
 }
 
 /** Requires a configured viem WalletClient for live transactions. */

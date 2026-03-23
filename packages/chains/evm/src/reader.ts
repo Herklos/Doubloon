@@ -1,13 +1,8 @@
 import type {
   Entitlement, EntitlementCheck, EntitlementSource, Product, Logger, Platform,
 } from '@doubloon/core';
-import { checkEntitlement, DoubloonError, nullLogger } from '@doubloon/core';
+import { checkEntitlement, DoubloonError, nullLogger, U8_TO_ENTITLEMENT_SOURCE } from '@doubloon/core';
 import { DoubloonAbi } from './abi.js';
-
-const SOURCE_MAP: Record<number, EntitlementSource> = {
-  0: 'platform', 1: 'creator', 2: 'delegate',
-  3: 'apple', 4: 'google', 5: 'stripe', 6: 'x402',
-};
 
 export interface DoubloonEvmReaderConfig {
   rpcUrl: string;

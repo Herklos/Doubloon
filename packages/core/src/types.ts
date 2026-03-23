@@ -13,6 +13,18 @@ export type Store = 'apple' | 'google' | 'stripe' | 'x402';
  */
 export type EntitlementSource = 'platform' | 'creator' | 'delegate' | 'apple' | 'google' | 'stripe' | 'x402';
 
+/** Maps EntitlementSource string to on-chain u8 discriminant. */
+export const ENTITLEMENT_SOURCE_TO_U8: Record<EntitlementSource, number> = {
+  platform: 0, creator: 1, delegate: 2,
+  apple: 3, google: 4, stripe: 5, x402: 6,
+};
+
+/** Maps on-chain u8 discriminant back to EntitlementSource string. */
+export const U8_TO_ENTITLEMENT_SOURCE: Record<number, EntitlementSource> = {
+  0: 'platform', 1: 'creator', 2: 'delegate',
+  3: 'apple', 4: 'google', 5: 'stripe', 6: 'x402',
+};
+
 /**
  * Normalized notification types across all stores.
  */

@@ -5,17 +5,8 @@ import type {
   Entitlement,
   EntitlementSource,
 } from '@doubloon/core';
+import { U8_TO_ENTITLEMENT_SOURCE } from '@doubloon/core';
 import { PublicKey } from '@solana/web3.js';
-
-const ENTITLEMENT_SOURCE_MAP: Record<number, EntitlementSource> = {
-  0: 'platform',
-  1: 'creator',
-  2: 'delegate',
-  3: 'apple',
-  4: 'google',
-  5: 'stripe',
-  6: 'x402',
-};
 
 function readPubkey(data: Buffer, offset: number): string {
   const bytes = data.subarray(offset, offset + 32);
@@ -146,7 +137,7 @@ export function deserializeEntitlement(data: Buffer): Entitlement {
     grantedAt: i64ToDateNonNull(grantedAt),
     expiresAt: i64ToDate(expiresAt),
     autoRenew,
-    source: ENTITLEMENT_SOURCE_MAP[source] ?? 'platform',
+    source: U8_TO_ENTITLEMENT_SOURCE[source] ?? 'platform',
     sourceId: sourceId.value,
     active,
     revokedAt: i64ToDate(revokedAt),
