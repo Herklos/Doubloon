@@ -232,6 +232,23 @@ const { serverConfig, registry } = defineConfig({
 
 Starfish entitlements have no per-feature expiry — `expiresAt` is always `null`. Expiry enforcement requires external revocation (via a cancellation webhook) or a reconciliation job.
 
+### Client-side entitlement checks
+
+On the client (mobile app, frontend), use the `pullEntitlements` helper from `@drakkar.software/starfish-client` to read the features array directly — no Doubloon server round-trip needed:
+
+```typescript
+import { pullEntitlements } from '@drakkar.software/starfish-client';
+
+const features = await pullEntitlements(starfishClient, userId);
+// e.g. ["pro-monthly", "lifetime"]
+
+if (features.includes('pro-monthly')) {
+  // unlock premium UI
+}
+```
+
+This reads the same `{ features: [...] }` document that `@doubloon/starfish` writes.
+
 ### OCC conflict retry
 
 409 conflicts are surfaced as a retryable `DoubloonError`. Use `mintWithRetry` for automatic backoff:

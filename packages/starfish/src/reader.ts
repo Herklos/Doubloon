@@ -1,7 +1,7 @@
 import type { ChainReader, EntitlementCheck, EntitlementCheckBatch, Entitlement, Product, Logger } from '@doubloon/core';
 import { checkEntitlement, checkEntitlements, DoubloonError, nullLogger } from '@doubloon/core';
 import type { StarfishClient } from '@drakkar.software/starfish-client';
-import { StarfishHttpError } from '@drakkar.software/starfish-client';
+import { StarfishHttpError, pullEntitlements } from '@drakkar.software/starfish-client';
 import type { ProductRegistry } from './product-registry.js';
 
 export interface StarfishReaderConfig {
@@ -88,12 +88,9 @@ export class StarfishReader implements ChainReader {
   async #pullFeatures(wallet: string): Promise<Set<string>> {
     const path = `/pull/${this.#storagePath.replace('{user}', wallet)}`;
     try {
-      const result = await this.#client.pull(path);
-      const list = (result.data as Record<string, unknown>)[this.#field];
-      if (!Array.isArray(list)) return new Set();
-      return new Set(list.filter((s): s is string => typeof s === 'string'));
+      const list = await pullEntitlements(this.#client, wallet, { path, field: this.#field });
+      return new Set(list);
     } catch (err) {
-      if (err instanceof StarfishHttpError && err.status === 404) return new Set();
       throw new DoubloonError('RPC_ERROR', `Starfish pull failed: ${String(err)}`, {
         retryable: err instanceof StarfishHttpError ? err.status >= 500 : true,
         chain: 'starfish',
