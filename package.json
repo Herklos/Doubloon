@@ -10,7 +10,8 @@
     "lint": "turbo lint",
     "clean": "turbo clean",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
-    "dev": "tsx scripts/run-server.ts"
+    "dev": "tsx scripts/run-server.ts",
+    "publish:all": "pnpm --filter @doubloon/core publish --access public && pnpm --filter @doubloon/server publish --access public && pnpm --filter @doubloon/starfish publish --access public && pnpm --filter @doubloon/anchor publish --access public && pnpm --filter @doubloon/bridge-apple publish --access public && pnpm --filter @doubloon/bridge-google publish --access public && pnpm --filter @doubloon/bridge-stripe publish --access public && pnpm --filter @doubloon/bridge-x402 publish --access public"
   },
   "devDependencies": {
     "@doubloon/anchor": "workspace:*",
