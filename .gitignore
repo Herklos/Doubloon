@@ -12,8 +12,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 *.egg-info/
-experiments/expo-app/
-experiments/browser-client/
-experiments/python-client/
+experiments/
 _tmp_*
 *.timestamp-*.mjs
