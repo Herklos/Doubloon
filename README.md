@@ -305,9 +305,9 @@ Each bridge sets `StoreNotification.environment` to `'production'` or `'sandbox'
 
 | Bridge | How environment is determined |
 |--------|-------------------------------|
-| **Stripe** | `event.livemode` — accurate for both test and live keys |
-| **Apple** | Decoded from the signed JWS payload (`payload.environment: "Sandbox" \| "Production"`) |
-| **Google** | `testPurchase` field presence on `subscriptionNotification` or `oneTimeProductNotification`; falls back to config default (`'production'`) |
+| **Stripe** | `event.livemode` — correct for both test-mode and live keys |
+| **Apple** | Decoded from the signed JWS payload (`payload.data.environment: "Sandbox" \| "Production"`) |
+| **Google** | Config flag only (`environment` option on `GoogleBridgeConfig`; defaults to `'production'`). Google's RTDN schema carries no per-event environment signal — use a separate bridge key or Pub/Sub topic for test-tier traffic |
 | **x402** | Always `'production'` |
 
 ### Enforcing a mode
