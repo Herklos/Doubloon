@@ -23,7 +23,7 @@ export interface NamespaceConfig {
     onMintFailure?: ServerConfig['onMintFailure'];
   };
   mintRetry?: MintRetryOpts;
-  /** Per-namespace environment mode. Overrides or supplements the global mode. */
+  /** Per-namespace environment mode. When set, webhooks with a mismatched environment are rejected with 400. */
   mode?: 'production' | 'sandbox';
 }
 

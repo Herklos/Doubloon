@@ -15,14 +15,12 @@ interface GoogleRTDN {
     notificationType: number;
     purchaseToken: string;
     subscriptionId: string;
-    testPurchase?: Record<string, unknown>;
   };
   oneTimeProductNotification?: {
     version: string;
     notificationType: number;
     purchaseToken: string;
     sku: string;
-    testPurchase?: Record<string, unknown>;
   };
   testNotification?: {
     version: string;
@@ -98,7 +96,7 @@ export class GoogleBridge {
     if (otp) {
       const notificationType = mapGoogleOneTimeNotificationType(otp.notificationType);
       const deduplicationKey = computeGoogleDeduplicationKey(notificationType, otp.purchaseToken, otp.notificationType);
-      const environment: 'production' | 'sandbox' = otp.testPurchase != null ? 'sandbox' : (this.config.environment ?? 'production');
+      const environment: 'production' | 'sandbox' = this.config.environment ?? 'production';
 
       const productId = await this.config.productResolver.resolveProductId('google', otp.sku);
       if (!productId) {
@@ -134,7 +132,7 @@ export class GoogleBridge {
 
     const notificationType = mapGoogleNotificationType(sub!.notificationType);
     const deduplicationKey = computeGoogleDeduplicationKey(notificationType, sub!.purchaseToken, sub!.notificationType);
-    const environment: 'production' | 'sandbox' = sub!.testPurchase != null ? 'sandbox' : (this.config.environment ?? 'production');
+    const environment: 'production' | 'sandbox' = this.config.environment ?? 'production';
 
     // Resolve on-chain product ID from Google subscription ID
     const productId = await this.config.productResolver.resolveProductId('google', sub!.subscriptionId);

@@ -336,7 +336,8 @@ export class AppleBridge {
   }
 
   private static extractEnvironment(payload: Record<string, unknown>): 'production' | 'sandbox' {
-    const raw = (payload.environment ?? (payload.data as Record<string, unknown> | undefined)?.environment) as string | undefined;
+    const data = payload.data as Record<string, unknown> | undefined;
+    const raw = data?.environment as string | undefined;
     return raw?.toLowerCase() === 'sandbox' ? 'sandbox' : 'production';
   }
 
