@@ -39,6 +39,16 @@ Custom Store ─────┘
 
 ---
 
+## Documentation
+
+Full setup guides for every bridge, destination, and server option are in [`docs/`](docs/README.md):
+
+- **Bridges:** [Apple](docs/bridges/apple.md) · [Google](docs/bridges/google.md) · [Stripe](docs/bridges/stripe.md) · [x402](docs/bridges/x402.md)
+- **Destinations:** [Starfish](docs/destinations/starfish.md) · [Anchor / Supabase](docs/destinations/anchor.md)
+- **Server:** [defineConfig & createServer](docs/server.md) · [Namespaced server](docs/namespaced-server.md)
+
+---
+
 ## Quick Start
 
 ```bash
