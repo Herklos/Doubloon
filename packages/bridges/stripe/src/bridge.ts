@@ -169,7 +169,12 @@ export class StripeBridge {
   }
 
   private extractWallet(obj: Record<string, unknown>): string | null {
-    // Check metadata.wallet on the subscription/customer object
+    // Checkout session: use client_reference_id as the wallet identifier
+    if (typeof obj.client_reference_id === 'string' && obj.client_reference_id) {
+      const raw = obj.client_reference_id;
+      return this.config.clientReferenceIdTransform ? this.config.clientReferenceIdTransform(raw) : raw;
+    }
+    // Subscription / customer: metadata.wallet
     const metadata = obj.metadata as Record<string, string> | undefined;
     if (metadata?.wallet) {
       return metadata.wallet;
@@ -216,16 +221,10 @@ export class StripeBridge {
   }
 
   private isValidWalletAddress(address: string): boolean {
-    // Check if it's a valid Solana address (base58, 32-44 chars) or Ethereum address (42 chars starting with 0x)
     if (!address || typeof address !== 'string') return false;
-    // Solana address: base58, typically 32-44 characters
-    if (/^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{32,44}$/.test(address)) {
-      return true;
-    }
-    // Ethereum/EVM address: 0x followed by 40 hex characters
-    if (/^0x[0-9a-fA-F]{40}$/.test(address)) {
-      return true;
-    }
+    if (this.config.walletValidator) return this.config.walletValidator(address);
+    if (/^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{32,44}$/.test(address)) return true;
+    if (/^0x[0-9a-fA-F]{40}$/.test(address)) return true;
     return false;
   }
 }

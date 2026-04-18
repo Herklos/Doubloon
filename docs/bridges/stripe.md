@@ -33,7 +33,28 @@ const stripe = new StripeBridge({
 | `webhookSecret` | `string` | ✓ | Stripe webhook signing secret (starts with `whsec_`). Used to verify the `Stripe-Signature` header via HMAC-SHA256. |
 | `productResolver` | `StoreProductResolver` | ✓ | Maps Stripe price IDs to on-chain product IDs. See [Product Resolver](#product-resolver). |
 | `walletResolver` | `WalletResolver` | ✓ | Resolves user wallet from a Stripe customer ID. See [Wallet Resolver](#wallet-resolver). |
+| `walletValidator` | `(address: string) => boolean` | | Overrides the default Solana/EVM wallet format check. |
+| `clientReferenceIdTransform` | `(id: string) => string` | | Transform applied to `client_reference_id` before it is used as the wallet address. Use when embedding extra data in the field (e.g. `"{userId}_{weddingId}"`). |
 | `logger` | `Logger` | | Optional structured logger. |
+
+---
+
+## Payment Links — embedding extra data in `client_reference_id`
+
+Stripe Payment Links pass `client_reference_id` verbatim to the webhook. To embed extra data alongside the wallet (e.g. an internal record ID), use `clientReferenceIdTransform` to extract just the wallet part:
+
+```ts
+new StripeBridge({
+  webhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
+  productResolver,
+  walletResolver,
+  walletValidator: (addr) => /^[0-9a-f]{16}$/i.test(addr),
+  // client_reference_id = "{userId}_{weddingId}"
+  clientReferenceIdTransform: (id) => id.split('_')[0],
+})
+```
+
+The raw `client_reference_id` is still visible in the Stripe Dashboard and in `notification.raw`.
 
 ---
 

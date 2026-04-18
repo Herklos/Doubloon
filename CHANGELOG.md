@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3.1 (2026-04-18)
+
+### Features
+
+#### Stripe (`@drakkar.software/doubloon-bridge-stripe`)
+
+- `walletValidator?: (address: string) => boolean` — optional custom wallet format check, overrides the default Solana/EVM validation. Consistent with Apple and Google bridges.
+- `clientReferenceIdTransform?: (id: string) => string` — optional transform applied to `client_reference_id` before it is used as the wallet address. Enables embedding extra data in the field (e.g. `"{userId}_{weddingId}"` from a Stripe Payment Link URL) while resolving only the wallet part. Raw value remains visible in the Stripe Dashboard and in `notification.raw`.
+- `client_reference_id` is now checked in `extractWallet` (before `metadata.wallet`), matching the expected Stripe Payment Link flow.
+
+### Tests
+
+- 2 new tests in `packages/bridges/stripe/__tests__/bridge.test.ts` — plain `client_reference_id` as wallet with custom validator; compound `client_reference_id` with transform.
+
+### Docs
+
+- `docs/bridges/stripe.md`: added `walletValidator` and `clientReferenceIdTransform` to config table; new **Payment Links** section with example.
+
+---
+
 ## 0.3.0 (2026-04-17)
 
 ### Features

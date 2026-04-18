@@ -246,6 +246,54 @@ describe('StripeBridge', () => {
     ).rejects.toMatchObject({ code: 'INVALID_SIGNATURE' });
   });
 
+  it('uses client_reference_id as wallet when present', async () => {
+    const bridge = new StripeBridge({
+      webhookSecret: TEST_WEBHOOK_SECRET,
+      productResolver: makeMockResolver(),
+      walletResolver: makeMockWalletResolver(),
+      walletValidator: (addr) => /^[0-9a-f]{16}$/i.test(addr),
+    });
+
+    const event = makeStripeEvent({
+      data: {
+        object: {
+          id: 'cs_test_abc',
+          client_reference_id: 'aab2c2bdeec5176e',
+          metadata: {},
+          items: { data: [{ price: { id: 'price_pro_monthly' } }] },
+        },
+      },
+    });
+
+    const result = await callWithSignedEvent(bridge, event);
+    expect(result.notification.userWallet).toBe('aab2c2bdeec5176e');
+  });
+
+  it('applies clientReferenceIdTransform to extract wallet from compound client_reference_id', async () => {
+    const bridge = new StripeBridge({
+      webhookSecret: TEST_WEBHOOK_SECRET,
+      productResolver: makeMockResolver(),
+      walletResolver: makeMockWalletResolver(),
+      walletValidator: (addr) => /^[0-9a-f]{16}$/i.test(addr),
+      clientReferenceIdTransform: (id) => id.split('_')[0],
+    });
+
+    const event = makeStripeEvent({
+      data: {
+        object: {
+          id: 'cs_test_abc',
+          client_reference_id: 'aab2c2bdeec5176e_550e8400-e29b-41d4-a716-446655440000',
+          metadata: {},
+          items: { data: [{ price: { id: 'price_pro_monthly' } }] },
+        },
+      },
+    });
+
+    const result = await callWithSignedEvent(bridge, event);
+    expect(result.notification.userWallet).toBe('aab2c2bdeec5176e');
+    expect((result.instruction as any).user).toBe('aab2c2bdeec5176e');
+  });
+
   it('falls back to walletResolver when no metadata.wallet', async () => {
     const walletResolver = makeMockWalletResolver();
     const bridge = new StripeBridge({
