@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.1 (2026-04-18)
+
+### Features
+
+#### Stripe (`@drakkar.software/doubloon-bridge-stripe`)
+
+- New `clientReferenceIdTransform?: (id: string) => string` option in `StripeBridgeConfig`. When set, the transform is applied to `client_reference_id` before it is used as the wallet address. This lets you embed extra data in the field (e.g. `"{userId}_{weddingId}"` from a Payment Link URL) without breaking wallet validation or storage path resolution. The raw value remains available in `notification.raw` and in the Stripe Dashboard for traceability.
+
+### Tests
+
+- 2 new tests in `packages/bridges/stripe/__tests__/bridge.test.ts` — plain `client_reference_id` as wallet, compound `client_reference_id` with transform.
+
+### Docs
+
+- `docs/bridges/stripe.md`: new **Payment Links — embedding extra data** section with example; `walletValidator` and `clientReferenceIdTransform` added to config table.
+
+---
+
 ## 0.3.0 (2026-04-17)
 
 ### Features

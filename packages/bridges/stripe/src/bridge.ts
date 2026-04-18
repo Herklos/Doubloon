@@ -86,19 +86,15 @@ export class StripeBridge {
     const priceId = this.extractPriceId(obj);
     const walletAddress = this.extractWallet(obj);
 
-    // Resolve on-chain product ID from Stripe price ID
-    let productId = '';
-    if (priceId) {
-      const resolved = await this.config.productResolver.resolveProductId('stripe', priceId);
-      if (resolved) {
-        productId = resolved;
-      } else {
-        throw new DoubloonError(
-          'PRODUCT_NOT_MAPPED',
-          `Stripe priceId "${priceId}" has no on-chain mapping`,
-        );
-      }
+    // Resolve on-chain product ID from Stripe price ID (null for checkout sessions without line items)
+    const resolved = await this.config.productResolver.resolveProductId('stripe', priceId);
+    if (!resolved) {
+      throw new DoubloonError(
+        'PRODUCT_NOT_MAPPED',
+        `Stripe priceId "${priceId ?? 'null'}" has no on-chain mapping`,
+      );
     }
+    const productId = resolved;
 
     // Resolve wallet: first try metadata.wallet, then fall back to walletResolver
     let userWallet = walletAddress ?? '';
@@ -169,6 +165,11 @@ export class StripeBridge {
   }
 
   private extractWallet(obj: Record<string, unknown>): string | null {
+    // Checkout session: use client_reference_id as the wallet identifier
+    if (typeof obj.client_reference_id === 'string' && obj.client_reference_id) {
+      const raw = obj.client_reference_id;
+      return this.config.clientReferenceIdTransform ? this.config.clientReferenceIdTransform(raw) : raw;
+    }
     // Check metadata.wallet on the subscription/customer object
     const metadata = obj.metadata as Record<string, string> | undefined;
     if (metadata?.wallet) {
@@ -216,16 +217,10 @@ export class StripeBridge {
   }
 
   private isValidWalletAddress(address: string): boolean {
-    // Check if it's a valid Solana address (base58, 32-44 chars) or Ethereum address (42 chars starting with 0x)
     if (!address || typeof address !== 'string') return false;
-    // Solana address: base58, typically 32-44 characters
-    if (/^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{32,44}$/.test(address)) {
-      return true;
-    }
-    // Ethereum/EVM address: 0x followed by 40 hex characters
-    if (/^0x[0-9a-fA-F]{40}$/.test(address)) {
-      return true;
-    }
+    if (this.config.walletValidator) return this.config.walletValidator(address);
+    if (/^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{32,44}$/.test(address)) return true;
+    if (/^0x[0-9a-fA-F]{40}$/.test(address)) return true;
     return false;
   }
 }
